@@ -153,7 +153,7 @@ def Generator():
         upsample(64,4)] # (bs, 128,128,512)
     
     initializer = tf.random_normal_initializer(0.,0.02)
-    last = tf.keras.layers.Conv2DTranspose(OUTPUT_CHENNELS, 4,strides=2,padding='same',
+    last = tf.keras.layers.Conv2DTranspose(OUTPUT_CHENNELS, 4,strides=(2),padding='same',
                                            activation ='tanh', 
                                            kernel_initializer= initializer,
                                            use_bias=False)
@@ -174,11 +174,18 @@ def Generator():
 
 generetor = Generator()
 tf.keras.utils.plot_model(generetor, show_shapes=True, dpi=64)
+
+gen_output = generetor(input_img[tf.newaxis,...], training= False)
+plt.imshow(gen_output[0,...])
+
+LAMBDA = 100
+
+def generator_loss(disc_generted_output, gen_output, target):
+    loss_object = tf.keras.losses.BinaryCrossentropy()
+    gen_loss = loss_object(tf.ones_like(disc_generted_output),disc_generted_output)
     
+    l1_loss = tf.reduce_mean(tf.abs(gen_output-target))
+    total_gen_loss = gen_loss + LAMBDA*l1_loss
     
-
-    
-
-
-
+    return total_gen_loss, gen_loss, l1_loss
     
