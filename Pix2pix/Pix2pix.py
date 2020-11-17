@@ -6,6 +6,7 @@ import time
 
 import tensorflow as tf
 import matplotlib.pyplot as plt
+from IPython import display
 
 def loaddata():
     _URL = 'https://people.eecs.berkeley.edu/~tinghuiz/projects/pix2pix/datasets/facades.tar.gz'
@@ -113,7 +114,7 @@ def downsample(filters, size, apply_batchmorm = True):
     if apply_batchmorm:
         result.add(tf.keras.layers.BatchNormalization())
     
-    result.add(tf.keras.layers.LeakyReLU())
+    result.add(tf.keras.layers.LeakyReLU(0.2))
     
     return result    
 
@@ -153,10 +154,10 @@ def Generator():
         upsample(64,4)] # (bs, 128,128,512)
     
     initializer = tf.random_normal_initializer(0.,0.02)
-    last = tf.keras.layers.Conv2DTranspose(OUTPUT_CHENNELS, 4,strides=(2),padding='same',
+    last = tf.keras.layers.Conv2DTranspose(OUTPUT_CHENNELS, 4, strides=2, 
+                                           padding='same',
                                            activation ='tanh', 
-                                           kernel_initializer= initializer,
-                                           use_bias=False)
+                                           kernel_initializer= initializer)
     
     x = inputs
     connections = []
@@ -180,12 +181,148 @@ plt.imshow(gen_output[0,...])
 
 LAMBDA = 100
 
+loss_object = tf.keras.losses.BinaryCrossentropy(from_logits=True)
+
 def generator_loss(disc_generted_output, gen_output, target):
-    loss_object = tf.keras.losses.BinaryCrossentropy()
-    gen_loss = loss_object(tf.ones_like(disc_generted_output),disc_generted_output)
+    gen_loss = loss_object(tf.ones_like(disc_generted_output), disc_generted_output)
     
     l1_loss = tf.reduce_mean(tf.abs(gen_output-target))
     total_gen_loss = gen_loss + LAMBDA*l1_loss
     
     return total_gen_loss, gen_loss, l1_loss
+
+def Discriminator():
+    initializer = tf.random_normal_initializer(0.,0.02)
     
+    inp = tf.keras.layers.Input(shape= [IMG_HEIGHT,IMG_WIDTH,3], name = 'input_img') # (bs, 256,256,3)
+    tar = tf.keras.layers.Input(shape= [IMG_HEIGHT,IMG_WIDTH,3], name = 'target_img') # (bs, 256,256,3)
+    conc = tf.keras.layers.concatenate([inp, tar], axis = -1) # (bs, 256,256,6)
+    
+    down1 = downsample(64,4, False)(conc) # (bs, 128,128,64)
+    down2 = downsample(128,4)(down1) # (bs, 64,64,128)
+    down3 = downsample(256,4)(down2) # (bs, 32,32,256)
+    
+    zero_ped1 = tf.keras.layers.ZeroPadding2D(padding=1)(down3) # (bs, 34,34,256)
+    conv = tf.keras.layers.Conv2D(512, 4, strides=1, 
+                                  kernel_initializer=initializer,
+                                  use_bias=False)(zero_ped1) # (bs, 31,31,512)
+    
+    batch_norm = tf.keras.layers.BatchNormalization() (conv) # (bs, 31,31,512)
+    active_relu = tf.keras.layers.LeakyReLU(0.2)(batch_norm) # (bs, 31,31,512)
+    zero_ped2 = tf.keras.layers.ZeroPadding2D(padding=1)(active_relu) # (bs, 33,33,512)
+    
+    last = tf.keras.layers.Conv2D(1, 4, strides=1,
+                                  kernel_initializer = initializer,
+                                  use_bias = False) (zero_ped2)
+    
+    return tf.keras.Model(inputs = [inp, tar],outputs = last)
+
+discriminator = Discriminator()
+tf.keras.utils.plot_model(discriminator, to_file='Discriminator.png',show_shapes=True, dpi=64)
+
+disc_out = discriminator([input_img[tf.newaxis,...],gen_output], training = False)
+plt.imshow(disc_out[0,...,-1], vmin=-20, vmax=20, cmap = 'RdBu_r')
+plt.colorbar()
+
+
+def discriminator_loss(disc_real_output, disc_gen_output):
+    real_loss = loss_object(tf.ones_like(disc_real_output),disc_real_output)
+    
+    gen_loss = loss_object(tf.zeros_like(disc_real_output), disc_gen_output)
+    
+    return real_loss + gen_loss
+
+generetor_optimizer = tf.keras.optimizers.Adam(2e-4, beta_1=0.5, beta_2=.999)
+discriminator_optimizer = tf.keras.optimizers.Adam(2e-4, beta_1=0.5, beta_2=.999)
+
+checkpoint_dir = './traning_checkpoints'
+checkpoint_prefix = os.path.join(checkpoint_dir,'ckpt')
+checkpoint = tf.train.Checkpoint(generetor_optimizer=generetor_optimizer,
+                                 discriminator_optimizer = discriminator_optimizer,
+                                 generetor = generetor,
+                                 discriminator = discriminator)
+
+
+def generate_images(model, input_img, target):
+    prediction = model(input_img, training = True)
+    
+    disp = [input_img[0], target[0], prediction[0]]
+    titles = ['Input Image', 'Ground Truth', 'Predicted Image']
+    
+    plt.figure(figsize = (15,15))
+    for i in range(3): 
+        plt.subplot(1,3,i+1)
+        plt.imshow(disp[i]*0.5+0.5)
+        plt.title(titles[i])
+        plt.axis('off')
+    plt.show()
+
+## ---------------- generate example images ----------- 
+# for example_input, example_tar in test_dataset.take(1):
+#     generate_images(generetor, example_input, example_tar)
+
+import datetime
+
+log_dir = 'logs/'
+
+summary_writer = tf.summary.create_file_writer(
+    log_dir + "fit/"+ datetime.datetime.now().strftime('%Y.%m.%d--%H:%M:%S'))
+
+@tf.function()
+def train_step(input_img, target, epoch):
+    with tf.GradientTape() as  gen_tape , tf.GradientTape() as disc_tape:
+        gen_output = generetor(input_img, training= True)
+        disc_gen_output = discriminator([input_img, gen_output], training = True)
+        disc_real_output = discriminator([input_img, target], training = True)
+        
+        gen_total_loss, gen_loss, gen_l1_loss = generator_loss(disc_gen_output, gen_output, target)
+        disc_loss = discriminator_loss(disc_real_output, disc_gen_output)      
+        
+        gen_gradient = gen_tape.gradient(gen_total_loss, generetor.trainable_variables)
+        disc_gradient = disc_tape.gradient(disc_loss, discriminator.trainable_variables)
+        
+        generetor_optimizer.apply_gradients(zip(gen_gradient, 
+                                                generetor.trainable_variables))
+        discriminator_optimizer.apply_gradients(zip(disc_gradient,
+                                                    discriminator.trainable_variables))
+        
+    with summary_writer.as_default():
+        tf.summary.scalar('Gen_total_loss', gen_total_loss, step = epoch)
+        tf.summary.scalar('Gen_loss', gen_loss, step=epoch)
+        tf.summary.scalar('Gen_l1_loss', gen_l1_loss, step= epoch)
+        tf.summary.scalar('Disc_loss', disc_loss, step = epoch)
+
+EPOCHS = 150
+
+def fit(train_ds, epochs, test_ds):
+    for epoch in range(epochs):
+        start = time.time()
+        print('Epoch:', epoch+1)
+        # for example_input, example_tar in test_ds.take(1):
+        #     generate_images(generetor, example_input, example_tar)
+        
+        for n, (input_img, target_img) in train_ds.enumerate():
+            train_step(input_img, target_img, epoch)
+            print('.', end='')
+            if (n+1)%100==0:
+                print()
+        print()
+        if (epoch+1)%20==0:
+            checkpoint.save(file_prefix=checkpoint_prefix)
+        print('Time taken to epoch: {} in sec {}\n'.format(epoch+1, time.time()-start))
+    
+    checkpoint.save(file_prefix=checkpoint_prefix)
+    
+fit(train_dataset, EPOCHS, test_dataset)
+
+
+
+
+
+
+
+
+
+
+
+
