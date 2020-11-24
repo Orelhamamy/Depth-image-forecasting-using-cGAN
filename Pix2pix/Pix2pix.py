@@ -149,9 +149,9 @@ def Generator():
         upsample(512, 4, apply_dropout=True), # (bs, 4,4,512)
         upsample(512, 4, apply_dropout=True), # (bs, 8,8,512)
         upsample(512, 4), # (bs, 16,16,512)
-        upsample(256,4), # (bs, 32,32,512)
-        upsample(128,4), # (bs, 64,64,512)
-        upsample(64,4)] # (bs, 128,128,512)
+        upsample(256,4), # (bs, 32,32,256)
+        upsample(128,4), # (bs, 64,64,128)
+        upsample(64,4)] # (bs, 128,128,64)
     
     initializer = tf.random_normal_initializer(0.,0.02)
     last = tf.keras.layers.Conv2DTranspose(OUTPUT_CHENNELS, 4, strides=2, 
@@ -169,7 +169,7 @@ def Generator():
     for up, conc in zip(up_stack, connections):
         x = up (x)
         x = tf.keras.layers.Concatenate()([conc, x])
-    x = last(x)
+    x = last (x)
     
     return tf.keras.Model(inputs = inputs, outputs = x)
 
@@ -312,8 +312,9 @@ def fit(train_ds, epochs, test_ds):
         print('Time taken to epoch: {} in sec {}\n'.format(epoch+1, time.time()-start))
     
     checkpoint.save(file_prefix=checkpoint_prefix)
-    
-fit(train_dataset, EPOCHS, test_dataset)
+discriminator.summary()   
+generetor.summary()
+# fit(train_dataset, EPOCHS, test_dataset)
 
 
 
