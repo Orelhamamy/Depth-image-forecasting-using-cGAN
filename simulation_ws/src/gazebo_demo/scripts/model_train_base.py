@@ -158,22 +158,22 @@ def Generator():
     inputs = tf.keras.layers.Input(shape=[HEIGHT, WIDTH,OBSERVE_SIZE])
     
     downing = [ 
-        downsample(20, 4, apply_batchnorm=False), # (bs, 64,64,20)
-        downsample(32, 4), # (bs, 32,32,32)
-        downsample(64, 4), # (bs, 16,16,64)
-        downsample(128, 4), # (bs, 8,8,128)
-        downsample(256, 4), # (bs, 4,4,256)
+        downsample(32, 4, apply_batchnorm=False), # (bs, 64,64,32)
+        downsample(64, 4), # (bs, 32,32,64)
+        downsample(128, 4), # (bs, 16,16,128)
+        downsample(256, 4), # (bs, 8,8,256)
+        downsample(512, 4), # (bs, 4,4,512)
         downsample(512, 4), # (bs, 2,2,512)
         downsample(512, 4), # (bs, 1,1,512)
         ]
     
     upping = [
         upsample(512, 4, apply_dropout = DROP_RATE), # (bs, 2,2,512)
-        upsample(256, 4, apply_dropout = DROP_RATE), # (bs, 4,4,256)
-        upsample(128, 4, apply_dropout = DROP_RATE), # (bs, 8,8,128)
-        upsample(64, 4), # (bs, 16,16,64)
-        upsample(32, 4), # (bs, 32,32,32)
-        upsample(20,4), # (bs, 64,64,20)
+        upsample(512, 4, apply_dropout = DROP_RATE), # (bs, 4,4,512)
+        upsample(256, 4, apply_dropout = DROP_RATE), # (bs, 8,8,256)
+        upsample(128, 4), # (bs, 16,16,128)
+        upsample(64, 4), # (bs, 32,32,64)
+        upsample(32,4), # (bs, 64,64,32)
         ]
     initializer = tf.random_normal_initializer(0.,VAR)
     last = tf.keras.layers.Conv2DTranspose(OUTPUT_SIZE, 4, strides = 2,
@@ -339,7 +339,7 @@ c=0
 summary_writer = tf.summary.create_file_writer(
     log_dir + "fit/"+ datetime.datetime.now().strftime('%Y.%m.%d--%H:%M:%S'))
 for _ in range(10):
-    fit(x_train[:-5], y_train[:-5], epochs=100, step =c*100) 
+    fit(x_train[:-5], y_train[:-5], epochs=100, step =c*200) 
     c+=1
 
 
