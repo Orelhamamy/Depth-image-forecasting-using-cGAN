@@ -1,3 +1,3 @@
 # Project
 BSc, final project. 
-Perception and revaulation of dynamic target
+Forecasting depth images of dynamic target
