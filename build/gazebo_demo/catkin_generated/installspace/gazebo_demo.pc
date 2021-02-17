@@ -1,0 +1,8 @@
+prefix=/home/lab/orel_ws/project/install
+
+Name: gazebo_demo
+Description: Description of gazebo_demo
+Version: 0.0.0
+Cflags: 
+Libs: -L${prefix}/lib 
+Requires: 
