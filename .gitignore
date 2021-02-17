@@ -1,3 +1,2 @@
-!model_training/
-model_training/
+/model_training/*/
 src/simulation_ws/data_set/archive
