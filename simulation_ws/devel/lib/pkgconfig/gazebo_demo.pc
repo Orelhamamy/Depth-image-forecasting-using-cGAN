@@ -1,8 +1,0 @@
-prefix=/home/lab/orel_ws/project/simulation_ws/devel
-
-Name: gazebo_demo
-Description: Description of gazebo_demo
-Version: 0.0.0
-Cflags: 
-Libs: -L${prefix}/lib 
-Requires: 

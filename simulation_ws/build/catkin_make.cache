@@ -1,2 +1,0 @@
-gazebo_demo
--DCATKIN_DEVEL_PREFIX=/home/lab/orel_ws/project/simulation_ws/devel -DCMAKE_INSTALL_PREFIX=/home/lab/orel_ws/project/simulation_ws/install -G Unix Makefiles
