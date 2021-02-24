@@ -36,7 +36,7 @@ loss_object  = tf.keras.losses.BinaryCrossentropy(from_logits=True)
 LR_GEN =2e-5; BETA_1_GEN =0.5; BETA_2_GEN =.5
 LR_DISC =2e-4; BETA_1_DISC =0.5; BETA_2_DISC =.5
 ITERATION_GEN = 1 ; ITERATION_DISC = 1
-model_name = 'cGAN_5pic_1y_train_1.4'
+model_name = 'cGAN_5pic_1y_train_1.5'
 losses_val = np.zeros((4,0))
 losses_avg = np.zeros((5,0)) # [Gen_total_loss, Gen_loss, Gen_l1_loss, Disc_loss, Reff_disc_loss]
 
@@ -332,7 +332,7 @@ def fit(train_sequence, epochs = EPOCHS, step = 0, model_name= 'generic_model'):
     global losses_avg, epoch, disc_gen_loss, disc_gen_loss_avg, learning_rates
     disc_gen_loss = np.zeros((1,0))
     disc_gen_loss_avg = np.zeros((1,0))
-    learning_rates = np.zeros((2,0))
+    
     sample_imgs(-1) 
     for epoch in range(epochs):
         start = time.time()
@@ -407,7 +407,7 @@ if __name__ =='__main__':
     
     tf.keras.utils.plot_model(discriminator, show_shapes = True,
                               dpi = 96, to_file = model_name + '/Discriminator.png')  
-    fit(train_sequence, epochs= 200, model_name=model_name)
+    fit(train_sequence, epochs= 150, model_name=model_name)
 
     
 
@@ -432,16 +432,16 @@ if __name__ =='__main__':
         discriminator_optimizer = tf.keras.optimizers.Adam(learning_rate_disc, beta_1=BETA_1_DISC, beta_2=BETA_2_DISC)
         losses_val = np.zeros((4,0))
         losses_avg = np.zeros((5,0)) 
-        fit(train_sequence, epochs= 150, model_name=model_name)
+        learning_rates = np.zeros((2,0))
+        fit(train_sequence, epochs= 20, model_name=model_name)
         Y_TRAIN_SIZE = 2
-        fit(train_sequence, epochs= 150, model_name=model_name)
-        Y_TRAIN_SIZE = 3
-        fit(train_sequence, epochs= 150, model_name=model_name)
+        fit(train_sequence, epochs= 50, model_name=model_name)    
         dic = {'Gen_total_loss': losses_avg[0,:], 'Gen_loss': losses_avg[1,:], 'Gen_l1_loss':losses_avg[2,:],
                'Disc_loss':losses_avg[3,:], 'Reff_disc_loss': losses_avg[4,:]
                }
         lr_rates =  {'gen_lr': learning_rates[0,:], 'disc_lr': learning_rates[1,:]}
-        
+        generator.save(model_name+'/generator')
+        discriminator.save(model_name+'/discriminator' )
         savemat('{}/losses-{}.mat'.format(model_name, datetime.datetime.now().strftime('%m.%d--%H:%M:%S')),dic)
         savemat('{}/lr_rates-{}.mat'.format(model_name, datetime.datetime.now().strftime('%m.%d--%H:%M:%S')),lr_rates)
 
