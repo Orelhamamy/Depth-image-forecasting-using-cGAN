@@ -25,18 +25,18 @@ BATCH_SIZE = 1
 HEIGHT, WIDTH = 128, 128
 EPOCHS = 10
 VAR = 0.02 # Variance of initialize kernels.
-ALPHA = 0.2 # Alpha for leakyReLU
+ALPHA = 0.2 # Alpha for leakyReLU.
 DROP_RATE = 0.5 # Dropout rate for upsample.
-OBSERVE_SIZE = 5 # How many img to observe
-Y_TRAIN_SIZE = 1 # How many img to learn recursive
-VALID = 0.3 # persent for test
+OBSERVE_SIZE = 5 # How many img to observe.
+Y_TRAIN_SIZE = 2 # How many img to learn recursive.
+GAP_PREDICT = 3 # The gap between the last observe and the predict.
 OUTPUT_SIZE = 1
 LAMBDA = 20 # determine the weight of l1 in Loss function (generator) LAMBDA = 0 -> cancel l1_loss
 loss_object  = tf.keras.losses.BinaryCrossentropy(from_logits=True)
 LR_GEN =2e-5; BETA_1_GEN =0.5; BETA_2_GEN =.5
 LR_DISC =2e-4; BETA_1_DISC =0.5; BETA_2_DISC =.5
 ITERATION_GEN = 1 ; ITERATION_DISC = 1
-model_name = 'cGAN_5pic_1y_train_1.5'
+model_name = 'cGAN_5pic_1y_train_1.6'
 losses_val = np.zeros((4,0))
 losses_avg = np.zeros((5,0)) # [Gen_total_loss, Gen_loss, Gen_l1_loss, Disc_loss, Reff_disc_loss]
 learning_rates = np.zeros((2,0))
@@ -342,13 +342,13 @@ def fit(train_sequence, epochs = EPOCHS, step = 0, model_name= 'generic_model'):
         reff_loss = 0
         losses_val =  np.zeros((4,0))
         print('Epoch:', epoch+1)
-        for img_inx in range(DATA_SET_SIZE-OBSERVE_SIZE-1):
+        for img_inx in range(DATA_SET_SIZE-OBSERVE_SIZE-1-GAP_PREDICT):
             input_seq = copy.copy(train_sequence[:,:,img_inx:img_inx+OBSERVE_SIZE])
             # train_step(train_sequence[:,:,img_inx:img_inx+OBSERVE_SIZE], train_sequence[:,:,img_inx+OBSERVE_SIZE+1], 
                                # epoch, step)
             for rec in range(Y_TRAIN_SIZE):
-                if (img_inx+OBSERVE_SIZE+rec+1)<DATA_SET_SIZE:
-                    train_step(input_seq, train_sequence[:,:,img_inx+OBSERVE_SIZE+rec+1], 
+                if (img_inx+OBSERVE_SIZE+rec+1+GAP_PREDICT)<DATA_SET_SIZE:
+                    train_step(input_seq, train_sequence[:,:,img_inx+OBSERVE_SIZE+rec+GAP_PREDICT+1], 
                                 epoch, step)
                     gen_img = generator(input_seq[tf.newaxis,...])     
                     input_seq = tf.concat([input_seq, gen_img[0]], axis=-1)
@@ -359,7 +359,7 @@ def fit(train_sequence, epochs = EPOCHS, step = 0, model_name= 'generic_model'):
                 gen_output = generator(input_seq[tf.newaxis,...],
                                        training = False)
                 disc_gen = discriminator_reff([input_seq[tf.newaxis,...], gen_output], training = False)
-                disc_real = discriminator_reff([input_seq[tf.newaxis,...], train_sequence[tf.newaxis,:,:,img_inx+OBSERVE_SIZE+1]]
+                disc_real = discriminator_reff([input_seq[tf.newaxis,...], train_sequence[tf.newaxis,:,:,img_inx+OBSERVE_SIZE+GAP_PREDICT+1]]
                                                , training = False)
                 reff_real_loss, reff_gen_loss = discriminator_loss(disc_gen, disc_real)
                 reff_loss += reff_gen_loss/(DATA_SET_SIZE-OBSERVE_SIZE-1)
@@ -372,7 +372,7 @@ def fit(train_sequence, epochs = EPOCHS, step = 0, model_name= 'generic_model'):
         learning_rate = np.array((LR_GEN, LR_DISC)).reshape(2,1)
         learning_rates = np.append(learning_rates,learning_rate, axis= 1)
         # disc_gen_loss_avg = np.append(disc_gen_loss_avg, disc_gen_loss.mean())
-        losses_avg = np.append(losses_avg, np.append(losses_val.mean(axis =1),reff_loss).reshape(5,1), axis =1) 
+        losses_avg = np.append(losses_avg, np.append(losses_val.mean(axis =1),reff_loss).reshape(5,1), axis =1)         
         if (epoch+1)%200==0:
             if not discriminator_reff:
                 generator.save(model_name+'/generator_0')
