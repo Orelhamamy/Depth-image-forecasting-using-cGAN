@@ -28,7 +28,7 @@ VAR = 0.02 # Variance of initialize kernels.
 ALPHA = 0.2 # Alpha for leakyReLU.
 DROP_RATE = 0.5 # Dropout rate for upsample.
 OBSERVE_SIZE = 5 # How many img to observe.
-Y_TRAIN_SIZE = 2 # How many img to learn recursive.
+Y_TRAIN_SIZE = 1 # How many img to learn recursive.
 GAP_PREDICT = 3 # The gap between the last observe and the predict.
 OUTPUT_SIZE = 1
 LAMBDA = 20 # determine the weight of l1 in Loss function (generator) LAMBDA = 0 -> cancel l1_loss
