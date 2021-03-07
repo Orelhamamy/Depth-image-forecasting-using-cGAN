@@ -1,4 +1,5 @@
-model_name  = 'cGAN_5pic_1y_train_1.5';
+clear
+model_name  = 'cGAN_5pic_1y_train_1.6';
 
 cd '/home/lab/orel_ws/project/model_training/'
 files = strsplit(ls(model_name + "/losses*.mat"),'\n');

@@ -36,7 +36,7 @@ loss_object  = tf.keras.losses.BinaryCrossentropy(from_logits=True)
 LR_GEN =2e-5; BETA_1_GEN =0.5; BETA_2_GEN =.5
 LR_DISC =2e-4; BETA_1_DISC =0.5; BETA_2_DISC =.5
 ITERATION_GEN = 1 ; ITERATION_DISC = 1
-model_name = 'cGAN_5pic_1y_train_1.6'
+model_name = 'cGAN_5pic_1y_train_1.7'
 losses_val = np.zeros((4,0))
 losses_avg = np.zeros((5,0)) # [Gen_total_loss, Gen_loss, Gen_l1_loss, Disc_loss, Reff_disc_loss]
 learning_rates = np.zeros((2,0))
@@ -106,7 +106,7 @@ def generate_image(inx, model = False, training = False, save =False):
         plt.title(i+1)
         plt.axis('off')
     plt.subplot(3,5,13)
-    plt.imshow(train_sequence[:,:,inx+OBSERVE_SIZE+1], cmap = 'gray',  vmin = -1, vmax = 1)
+    plt.imshow(train_sequence[:,:,inx+OBSERVE_SIZE+GAP_PREDICT+1], cmap = 'gray',  vmin = -1, vmax = 1)
     plt.title('Output')
     plt.axis('off')
     if not save:
@@ -294,8 +294,8 @@ def learning_rate_gen():
     if epoch+1<50 or epoch%10!=0:
         #LR_GEN = generator_optimizer.get_config()['learning_rate']
         return LR_GEN
-    global disc_gen_loss_avg
-    diff_loss_avg = np.diff(disc_gen_loss_avg[-10:]).mean()
+    global losses_avg
+    diff_loss_avg = np.diff(losses_avg[3,-10:]).mean()
     if diff_loss_avg> 0:
         return LR_GEN*0.9
     else:
@@ -305,8 +305,8 @@ def learning_rate_disc():
     if epoch+1<50 or epoch%10!=0:
         #LR_DISC = discriminator_optimizer.get_config()['learning_rate']
         return LR_DISC
-    global disc_gen_loss_avg
-    diff_loss_avg = np.diff(disc_gen_loss_avg[-10:]).mean()
+    global losses_avg
+    diff_loss_avg = np.diff(losses_avg[3,-10:]).mean()
     if diff_loss_avg> 0:
         return LR_DISC*1.5
     else:
@@ -328,13 +328,13 @@ def fit(train_sequence, epochs = EPOCHS, step = 0, model_name= 'generic_model'):
     with open(model_name +'/read me.txt','a') as file: 
         file.write('\n' + model_name + 
                    datetime.datetime.now().strftime('%Y.%m.%d--%H:%M:%S') +' Epochs:'+str(epochs)
-                   + ' Y_train is:' + str(Y_TRAIN_SIZE))
+                   + ' Y_train is:' + str(Y_TRAIN_SIZE) + ' Prediction gap:' + str(GAP_PREDICT))
         if not discriminator_reff:
             file.write(', Reff')
         file.close()
     global losses_avg, epoch, disc_gen_loss, disc_gen_loss_avg, learning_rates, losses_val
-    disc_gen_loss = np.zeros((1,0))
-    disc_gen_loss_avg = np.zeros((1,0))
+    # disc_gen_loss = np.zeros((1,0))
+    # disc_gen_loss_avg = np.zeros((1,0))
     
     sample_imgs(-1) 
     for epoch in range(epochs):
@@ -394,7 +394,7 @@ if __name__ =='__main__':
     except OSError:
         generator = Generator()
 
-    generator_optimizer = tf.keras.optimizers.Adam(LR_GEN, beta_1=BETA_1_GEN, beta_2=BETA_2_GEN)
+    generator_optimizer = tf.keras.optimizers.Adam(learning_rate_gen, beta_1=BETA_1_GEN, beta_2=BETA_2_GEN)
 
     tf.keras.utils.plot_model(generator, show_shapes=True, 
                               dpi = 96, to_file=model_name+'/Generator.png')    
@@ -403,7 +403,7 @@ if __name__ =='__main__':
     except OSError:
         discriminator = Discriminator()
 
-    discriminator_optimizer = tf.keras.optimizers.Adam(LR_DISC, beta_1=BETA_1_DISC, beta_2=BETA_2_DISC)
+    discriminator_optimizer = tf.keras.optimizers.Adam(learning_rate_disc, beta_1=BETA_1_DISC, beta_2=BETA_2_DISC)
 
     try:
         discriminator_reff = tf.keras.models.load_model(model_name+'/discriminator_reff')
@@ -430,14 +430,14 @@ if __name__ =='__main__':
         discriminator_reff = discriminator
         generator = Generator()
         discriminator = Discriminator()
-        generator_optimizer = tf.keras.optimizers.Adam(LR_GEN, beta_1=BETA_1_GEN, beta_2=BETA_2_GEN)
-        discriminator_optimizer = tf.keras.optimizers.Adam(LR_DISC, beta_1=BETA_1_DISC, beta_2=BETA_2_DISC)
+        generator_optimizer = tf.keras.optimizers.Adam(learning_rate_gen, beta_1=BETA_1_GEN, beta_2=BETA_2_GEN)
+        discriminator_optimizer = tf.keras.optimizers.Adam(learning_rate_disc, beta_1=BETA_1_DISC, beta_2=BETA_2_DISC)
         losses_val = np.zeros((4,0))
         losses_avg = np.zeros((5,0)) 
         learning_rates = np.zeros((2,0))
         fit(train_sequence, epochs= 150, model_name=model_name)
-        Y_TRAIN_SIZE = 2
-        fit(train_sequence, epochs= 50, model_name=model_name)    
+        # Y_TRAIN_SIZE = 2
+        # fit(train_sequence, epochs= 50, model_name=model_name)    
         dic = {'Gen_total_loss': losses_avg[0,:], 'Gen_loss': losses_avg[1,:], 'Gen_l1_loss':losses_avg[2,:],
                'Disc_loss':losses_avg[3,:], 'Reff_disc_loss': losses_avg[4,:]
                }
