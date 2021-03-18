@@ -39,28 +39,27 @@ checkpoint_dir = './traning_checkpoints'
 
 class Three_d_conv_model():
     def __init__(self, data_set_path, model_name,load_model = False, OBSERVE_SIZE = 5,
-                 Y_TRAIN_SIZE = 1, HEIGHT = 128, WIDTH = 128, ALPHA = 0.2, kernel_size = 3, OUTPUT_SIZE = 1,
-                 LAMBDA = 100, LR_GEN = 2e-4, BETA_1_GEN =0.5, BETA_2_GEN =.999, LR_DISC= 2e-4, BETA_1_DISC =0.5, BETA_2_DISC =.999,
-                 ITERATION_GEN = 1 ,ITERATION_DISC = 1, log_dir = 'logs/' , concate = True):
-        self.x_train =[]; self.y_train =[]
+                 Y_TRAIN_SIZE = 1, HEIGHT = 128, WIDTH = 128, ALPHA = 0.2, kernel_size = 3, OUTPUT_SIZE = 5,
+                 LAMBDA = 100, LR_GEN = 2e-4, BETA_1_GEN =0.5, BETA_2_GEN =.999, LR_DISC= 2e-4, BETA_1_DISC =0.5, 
+                 BETA_2_DISC =.999, ITERATION_GEN = 1 ,ITERATION_DISC = 1, log_dir = 'logs/' , concate = True):
         file_num = lambda x: int(x[x.index('--')+2:x.index('.jpg')])
         self.initializer = tf.random_normal_initializer(0.,0.02) # Var= 0.02
         if not load_model:
-            self.OBSERVE_SIZE = OBSERVE_SIZE ; self.Y_TRAIN_SIZE =Y_TRAIN_SIZE
+            self.OBSERVE_SIZE = OBSERVE_SIZE ; self.Y_TRAIN_SIZE = Y_TRAIN_SIZE
             self.HEIGHT = HEIGHT; self.WIDTH = WIDTH 
             self.ALPHA = ALPHA # Alpha for leakyReLU
             self.kernel_size = kernel_size; self.output_size = OUTPUT_SIZE
             self.LAMBDA = LAMBDA
             self.concate = concate
             self.data_set_path = data_set_path
+
             self.log_dir = log_dir
             self.iteration_gen = ITERATION_GEN ; self.iteration_disc = ITERATION_DISC       
-            self.create_generator()
-            self.create_discriminator()
+            #self.create_generator()
+            #self.create_discriminator()
             self.lr_gen = LR_GEN; self.lr_disc = LR_DISC; self.beta= [BETA_1_GEN, BETA_2_GEN, BETA_1_DISC, BETA_1_GEN]
             self.save_pram(model_name)
-            self.file_list = [[str(file), file_num(file)] for file in os.listdir(self.data_set_path)
-                  if file.endswith('.jpg')]
+
             
         else:
             # self.generator = tf.keras.models.load_model(model_name + '/generator')
@@ -77,7 +76,6 @@ class Three_d_conv_model():
         self.loss_object = tf.keras.losses.BinaryCrossentropy(from_logits = True)
         self.initializer = tf.random_normal_initializer(0.,0.02) # Var =0.02
 
-        self.load_data_with_future_y_train(Y_TRAIN_SIZE)
         self.gen_optimizer = tf.keras.optimizers.Adam(LR_GEN, beta_1 =self.beta[0], beta_2 = self.beta[1])
         self.disc_optimizer = tf.keras.optimizers.Adam(LR_DISC, beta_1= self.beta[2], beta_2 = self.beta[3])
         
@@ -106,29 +104,16 @@ class Three_d_conv_model():
         self.iteration_gen = param_dic['Iteration_gen'][0][0] ; self.iteration_disc = param_dic['Iteration_disc'][0][0]
         self.lr_gen = param_dic['Learning_rate'][0][0]; self.lr_disc = param_dic['Learning_rate'][0][1]; self.beta=param_dic['Beta'][0]
         
-    def read_img(self, files, size_y_data):
-        imgs = []
-        for img in range(self.OBSERVE_SIZE):
-            x = tf.keras.preprocessing.image.load_img(self.data_set_path + files[img][0], 
+    def read_img(self, img_name):
+        x = tf.keras.preprocessing.image.load_img(self.data_set_path + img_name, 
                                                   color_mode='grayscale')
-            x = tf.keras.preprocessing.image.img_to_array(x)
-            x = x/255.0
-            if len(imgs)==0:
-                imgs = x
-            else:
-                imgs = tf.concat([imgs,x], axis=2)
-        output = tf.keras.preprocessing.image.load_img(self.data_set_path + files[self.OBSERVE_SIZE][0],
-                                                    color_mode='grayscale')
-        output = tf.keras.preprocessing.image.img_to_array(output)  
-        for y_img_num in range(1,size_y_data):
-            y_output = tf.keras.preprocessing.image.load_img(self.data_set_path + files[self.OBSERVE_SIZE+y_img_num][0],
-                                                         color_mode='grayscale')
-            y_output = tf.keras.preprocessing.image.img_to_array(y_output)
-            output = tf.concat([output, y_output], axis = 2)
-        output = tf.convert_to_tensor(output) / 255.0
-        return imgs, output
+        x = tf.keras.preprocessing.image.img_to_array(x)
+        x = x/127.5-1 
+        return x
     
-    def load_data_with_future_y_train(self, Y_TRAIN_SIZE):
+    def load_data(self):
+        self.data = self.read_img(self.file_list)
+        '''
         counter = 1 # Count the maximum size of y_train
         y_train_size = Y_TRAIN_SIZE
         for i in range(len(self.file_list)-self.OBSERVE_SIZE):
@@ -138,8 +123,7 @@ class Three_d_conv_model():
                 while (counter < y_train_size) and (self.file_list[i+counter+self.OBSERVE_SIZE-1][1]+1==self.file_list[i+counter+self.OBSERVE_SIZE][1]):
                     counter+=1
                 x, y = self.read_img(self.file_list[i:i+self.OBSERVE_SIZE+counter], counter)
-            self.x_train.append(x)
-            self.y_train.append(y)
+'''
     
     def generate_images(self, sample_num, model = False, training = False, columns = 5, save = False):
         rows = self.OBSERVE_SIZE//columns +(self.OBSERVE_SIZE%columns > 0) +  1
@@ -342,7 +326,7 @@ class Three_d_conv_model():
 
 # model = Three_d_conv_model('/home/lab/orel_ws/project/simulation_ws/data_set/','3D_conv_try',OBSERVE_SIZE=3,
 #                             Y_TRAIN_SIZE=2,LR_GEN=2e-5,concate=False)
-model_2 = Three_d_conv_model('/home/lab/orel_ws/project/simulation_ws/data_set/','3D_conv_try',load_model=True)
+model_2 = Three_d_conv_model('/home/lab/orel_ws/project/src/simulation_ws/data_set/','3D_conv_try')
 # model = Three_d_conv_model(data_set_path,Y_TRAIN_SIZE=1)
 # model.create_generator()
 # model.create_discriminator()

@@ -55,3 +55,12 @@ plot(last.Reff_disc_loss)
 xlabel('Epoch','Interpreter', 'latex'); ylabel('${J_{D_{reff}}}$','Interpreter', 'latex')
 set(gcf,'Position', size)
 grid on
+
+figure(7)
+plot(gen_lr)
+hold on
+plot(disc_lr)
+legend('Gen LR','Disc LR'); grid on;
+set(gcf,'Position', size)
+xlabel('Epoch','Interpreter', 'latex'); ylabel('Learning rate','Interpreter', 'latex')
+hold off

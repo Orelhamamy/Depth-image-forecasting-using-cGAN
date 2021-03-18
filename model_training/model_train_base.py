@@ -32,7 +32,8 @@ loss_object  = tf.keras.losses.BinaryCrossentropy(from_logits=True)
 LR_GEN =15e-5; BETA_1_GEN =0.5; BETA_2_GEN =.5
 LR_DISC =2e-4; BETA_1_DISC =0.5; BETA_2_DISC =.5
 ITERATION_GEN = 1 ; ITERATION_DISC = 1
-model_name = 'cGAN_5pic_1y_train_2'
+model_name = 'cGAN_5pic_1y_train_2.1'
+data_set_path = '/home/lab/orel_ws/project/data_set_armadillo/3/'
 losses_val = np.zeros((4,0))
 losses_avg = np.zeros((5,0)) # [Gen_total_loss, Gen_loss, Gen_l1_loss, Disc_loss, Reff_disc_loss]
 learning_rates = np.array([[LR_GEN],[LR_DISC]])
@@ -41,7 +42,6 @@ if not os.path.exists(model_name):
     os.makedirs(model_name)
 
 def read_img(img_name, data_set_path):
-    imgs = []
 
     x = tf.keras.preprocessing.image.load_img(data_set_path + img_name,
                                               color_mode='grayscale')
@@ -68,7 +68,7 @@ def load_data(data_set_path = '/home/lab/orel_ws/project/src/simulation_ws/data_
     file_num = lambda x: int(x[x.index('--')+2:x.index('.jpg')])
 
     file_list = [[file, file_num(file)] for file in os.listdir(data_set_path)
-             if file.endswith('.jpg')] # and file_num(file)%10==0] # For armadillo data set
+             if file.endswith('.jpg') and file_num(file)%10==0] # For armadillo data set
     file_list.sort(key = lambda x:x[1])
     train_sequence =read_img(file_list[0][0], data_set_path) 
     for img_name in file_list[1:]:
@@ -392,7 +392,7 @@ def fit(train_sequence, epochs = EPOCHS, step = 0, model_name= 'generic_model'):
         
 
 if __name__ =='__main__':
-    train_sequence = load_data()
+    train_sequence = load_data(data_set_path)
     DATA_SET_SIZE = train_sequence.shape[2]
     # train_sequence = train_sequence[:,:,:100]
     # DATA_SET_SIZE = 100
