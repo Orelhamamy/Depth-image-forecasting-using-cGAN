@@ -17,6 +17,7 @@ INTERVAL = 0.25
 HEIGHT, WIDTH = 128, 128
 DIFF = 1000 # Exam the diff between two sequential img 
 depth_camera = '/depth_camera/depth/image_raw'
+#data_set_path = '/home/lab/orel_ws/project/data_set/test'
 data_set_path = '/home/lab/orel_ws/project/src/simulation_ws/data_set'
 datetime = datetime.now()
 date = datetime.now().strftime("%d-%m-%y,%H:%M")
@@ -69,7 +70,8 @@ class image_buffer():
 def main():
     img_msg = rospy.wait_for_message(depth_camera,Image)
     bridge = CvBridge()
-    
+    if not os.path.exists(data_set_path):
+        os.makedirs(data_set_path)
     img1 = image_buffer(bridge.imgmsg_to_cv2(img_msg, desired_encoding='passthrough'), bridge)
     # img1.save_img(data_set_path, date)
     rospy.Subscriber('/cmd_vel', Twist,img1.vel_callback)

@@ -11,16 +11,12 @@ import copy
 from scipy.io import savemat
 
 
-data_set_path = '/home/lab/orel_ws/project/src/simulation_ws/data_set/'
-# train_dataset = tf.data.Dataset.list_files(data_set_path + '/*.jpg')
-file_num = lambda x: int(x[x.index('--')+2:x.index('.jpg')])
 
-file_list = [[file, file_num(file)] for file in os.listdir(data_set_path)
-             if file.endswith('.jpg')]
-file_list.sort(key = lambda x:x[1])
-file_list_test =[]
-file_list_train = []
-DATA_SET_SIZE = len(file_list)
+#data_set_path = '/home/lab/orel_ws/project/data_set/test/'
+# train_dataset = tf.data.Dataset.list_files(data_set_path + '/*.jpg')
+
+
+#DATA_SET_SIZE = len(file_list)
 BATCH_SIZE = 1
 HEIGHT, WIDTH = 128, 128
 EPOCHS = 10
@@ -29,22 +25,22 @@ ALPHA = 0.2 # Alpha for leakyReLU.
 DROP_RATE = 0.5 # Dropout rate for upsample.
 OBSERVE_SIZE = 5 # How many img to observe.
 Y_TRAIN_SIZE = 1 # How many img to learn recursive.
-GAP_PREDICT = 3 # The gap between the last observe and the predict.
+GAP_PREDICT = 2 # The gap between the last observe and the predict.
 OUTPUT_SIZE = 1
 LAMBDA = 20 # determine the weight of l1 in Loss function (generator) LAMBDA = 0 -> cancel l1_loss
 loss_object  = tf.keras.losses.BinaryCrossentropy(from_logits=True)
-LR_GEN =2e-5; BETA_1_GEN =0.5; BETA_2_GEN =.5
+LR_GEN =15e-5; BETA_1_GEN =0.5; BETA_2_GEN =.5
 LR_DISC =2e-4; BETA_1_DISC =0.5; BETA_2_DISC =.5
 ITERATION_GEN = 1 ; ITERATION_DISC = 1
-model_name = 'cGAN_5pic_1y_train_1.7'
+model_name = 'cGAN_5pic_1y_train_2'
 losses_val = np.zeros((4,0))
 losses_avg = np.zeros((5,0)) # [Gen_total_loss, Gen_loss, Gen_l1_loss, Disc_loss, Reff_disc_loss]
-learning_rates = np.zeros((2,0))
+learning_rates = np.array([[LR_GEN],[LR_DISC]])
 
 if not os.path.exists(model_name):
     os.makedirs(model_name)
 
-def read_img(img_name):
+def read_img(img_name, data_set_path):
     imgs = []
 
     x = tf.keras.preprocessing.image.load_img(data_set_path + img_name,
@@ -68,25 +64,17 @@ def read_img(img_name):
     return x
     
     
-def load_data():
-    train_sequence =read_img(file_list[0][0]) 
+def load_data(data_set_path = '/home/lab/orel_ws/project/src/simulation_ws/data_set/'):
+    file_num = lambda x: int(x[x.index('--')+2:x.index('.jpg')])
+
+    file_list = [[file, file_num(file)] for file in os.listdir(data_set_path)
+             if file.endswith('.jpg')] # and file_num(file)%10==0] # For armadillo data set
+    file_list.sort(key = lambda x:x[1])
+    train_sequence =read_img(file_list[0][0], data_set_path) 
     for img_name in file_list[1:]:
-        train_sequence = np.concatenate((train_sequence , read_img(img_name[0])), axis=2)
+        train_sequence = np.concatenate((train_sequence , read_img(img_name[0], data_set_path)), axis=2)
 
-    
     return train_sequence
-'''
-def load_data():
-    x_train =[]
-    y_train =[]
-    for i in range(BUFFER_SIZE-OBSERVE_SIZE):
-        if file_list[i][1]+OBSERVE_SIZE==file_list[i+OBSERVE_SIZE][1]:
-            x, y = read_img(file_list[i:i+OBSERVE_SIZE+1],1)
-            x_train.append(x)
-            y_train.append(y)
-    return x_train, x_test, y_train, y_test
-'''
-
         
 
 def generate_image(inx, model = False, training = False, save =False):
@@ -286,31 +274,50 @@ def train_step(input_imgs, target, epoch, step):
 
 def sample_imgs(epoch):
     generate_image(50, model = generator, save = '{}/figs/epoch--{}.png'.format(model_name,epoch+1))
-    inx = tf.random.uniform([1],0,train_sequence.shape[2]-OBSERVE_SIZE-1,dtype = tf.dtypes.int32).numpy()[0]
+    inx = tf.random.uniform([1],0,train_sequence.shape[2]-OBSERVE_SIZE-GAP_PREDICT-1,dtype = tf.dtypes.int32).numpy()[0]
     generate_image(inx, model = generator, save = '{}/figs/random/epoch--{}_inx-{}.png'.format(model_name,epoch+1,inx))
 
 
 def learning_rate_gen():
-    if epoch+1<50 or epoch%10!=0:
-        #LR_GEN = generator_optimizer.get_config()['learning_rate']
-        return LR_GEN
+    if epoch+1<50 or learning_rates[0,-1]<2e-6: # or epoch%10!=0
+        return learning_rates[0,-1]
     global losses_avg
-    diff_loss_avg = np.diff(losses_avg[3,-10:]).mean()
+    diff_loss_avg = np.diff(losses_avg[3,-20:]).mean()
     if diff_loss_avg> 0:
-        return LR_GEN*0.9
+        return learning_rates[0,-1]*0.92
     else:
-        return LR_GEN*1.5
+        return learning_rates[0,-1]*0.965
     
 def learning_rate_disc():
-    if epoch+1<50 or epoch%10!=0:
-        #LR_DISC = discriminator_optimizer.get_config()['learning_rate']
-        return LR_DISC
+    if epoch+1<50 or learning_rates[1,-1]<2e-6: # or epoch%10!=0
+        return learning_rates[1,-1]
     global losses_avg
-    diff_loss_avg = np.diff(losses_avg[3,-10:]).mean()
+    diff_loss_avg = np.diff(losses_avg[3,-20:]).mean()
     if diff_loss_avg> 0:
-        return LR_DISC*1.5
+        return learning_rates[1,-1]*0.985
     else:
-        return LR_DISC*0.9
+        return learning_rates[1,-1]*0.935
+    
+def learning_rate_gen_gens_aspect():
+    if epoch+1<50 or learning_rates[0,-1]<2e-6: # or epoch%10!=0
+        return learning_rates[0,-1]
+    global losses_avg
+    diff_loss_avg = np.diff(losses_avg[1,-20:]).mean()
+    if diff_loss_avg< 0:
+        return learning_rates[0,-1]*0.92
+    else:
+        return learning_rates[0,-1]*0.975
+    
+def learning_rate_disc_gen_aspect():
+    if epoch+1<50 or learning_rates[1,-1]<2e-6: # or epoch%10!=0
+        return learning_rates[1,-1]
+    global losses_avg
+    diff_loss_avg = np.diff(losses_avg[1,-20:]).mean()
+    if diff_loss_avg< 0:
+        return learning_rates[1,-1]*0.985
+    else:
+        return learning_rates[1,-1]*0.935
+    
 def show_img(images,target):
     for i in range(images.shape[-1]):
         axs = plt.subplot(3,5,i+1)
@@ -359,17 +366,17 @@ def fit(train_sequence, epochs = EPOCHS, step = 0, model_name= 'generic_model'):
                 gen_output = generator(input_seq[tf.newaxis,...],
                                        training = False)
                 disc_gen = discriminator_reff([input_seq[tf.newaxis,...], gen_output], training = False)
-                disc_real = discriminator_reff([input_seq[tf.newaxis,...], train_sequence[tf.newaxis,:,:,img_inx+OBSERVE_SIZE+GAP_PREDICT+1]]
-                                               , training = False)
+                disc_real = discriminator_reff([input_seq[tf.newaxis,...], 
+                                               train_sequence[tf.newaxis,:,:,img_inx+OBSERVE_SIZE+GAP_PREDICT+1]],
+                                               training = False)
                 reff_real_loss, reff_gen_loss = discriminator_loss(disc_gen, disc_real)
                 reff_loss += reff_gen_loss/(DATA_SET_SIZE-OBSERVE_SIZE-1)
             
             print('.' ,end='')
             if (img_inx+1)%100==0:
                     print('\n')
-        LR_DISC = discriminator_optimizer.get_config()['learning_rate']
-        LR_GEN = generator_optimizer.get_config()['learning_rate']
-        learning_rate = np.array((LR_GEN, LR_DISC)).reshape(2,1)
+        learning_rate = np.array((generator_optimizer.get_config()['learning_rate'],
+                                  discriminator_optimizer.get_config()['learning_rate'])).reshape(2,1)
         learning_rates = np.append(learning_rates,learning_rate, axis= 1)
         # disc_gen_loss_avg = np.append(disc_gen_loss_avg, disc_gen_loss.mean())
         losses_avg = np.append(losses_avg, np.append(losses_val.mean(axis =1),reff_loss).reshape(5,1), axis =1)         
@@ -386,6 +393,7 @@ def fit(train_sequence, epochs = EPOCHS, step = 0, model_name= 'generic_model'):
 
 if __name__ =='__main__':
     train_sequence = load_data()
+    DATA_SET_SIZE = train_sequence.shape[2]
     # train_sequence = train_sequence[:,:,:100]
     # DATA_SET_SIZE = 100
     
@@ -393,9 +401,8 @@ if __name__ =='__main__':
         generator = tf.keras.models.load_model(model_name+'/generator')
     except OSError:
         generator = Generator()
-
+        
     generator_optimizer = tf.keras.optimizers.Adam(learning_rate_gen, beta_1=BETA_1_GEN, beta_2=BETA_2_GEN)
-
     tf.keras.utils.plot_model(generator, show_shapes=True, 
                               dpi = 96, to_file=model_name+'/Generator.png')    
     try: 
@@ -419,7 +426,7 @@ if __name__ =='__main__':
         os.rename(model_name + '/figs',model_name + '/figs_reff')
     else:    
         generator.save(model_name+'/generator')
-        discriminator.save(model_name+'/discriminator' )
+        discriminator.save(model_name+'/discriminator')
     
     lr_rates =  {'gen_lr': learning_rates[0,:], 'disc_lr': learning_rates[1,:]}
     dic = {'Gen_total_loss': losses_avg[0,:], 'Gen_loss': losses_avg[1,:], 'Gen_l1_loss':losses_avg[2,:],
@@ -427,14 +434,14 @@ if __name__ =='__main__':
     savemat('{}/losses-{}.mat'.format(model_name, datetime.datetime.now().strftime('%m.%d--%H:%M:%S')),dic)
     savemat('{}/lr_rates-{}.mat'.format(model_name, datetime.datetime.now().strftime('%m.%d--%H:%M:%S')),lr_rates)
     if not discriminator_reff: # if not discriminator_reff:
-        discriminator_reff = discriminator
+        discriminator_reff = tf.keras.models.load_model(model_name+'/discriminator_reff')
         generator = Generator()
         discriminator = Discriminator()
-        generator_optimizer = tf.keras.optimizers.Adam(learning_rate_gen, beta_1=BETA_1_GEN, beta_2=BETA_2_GEN)
-        discriminator_optimizer = tf.keras.optimizers.Adam(learning_rate_disc, beta_1=BETA_1_DISC, beta_2=BETA_2_DISC)
+        generator_optimizer = tf.keras.optimizers.Adam(learning_rate_gen_gens_aspect, beta_1=BETA_1_GEN, beta_2=BETA_2_GEN)
+        discriminator_optimizer = tf.keras.optimizers.Adam(learning_rate_disc_gen_aspect, beta_1=BETA_1_DISC, beta_2=BETA_2_DISC)
         losses_val = np.zeros((4,0))
         losses_avg = np.zeros((5,0)) 
-        learning_rates = np.zeros((2,0))
+        learning_rates = np.array([[LR_GEN],[LR_DISC]])
         fit(train_sequence, epochs= 150, model_name=model_name)
         # Y_TRAIN_SIZE = 2
         # fit(train_sequence, epochs= 50, model_name=model_name)    

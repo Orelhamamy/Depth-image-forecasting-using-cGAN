@@ -1,2 +1,4 @@
 /model_training/*/
 src/simulation_ws/data_set/archive
+data_set/
+data_set_armadillo/
