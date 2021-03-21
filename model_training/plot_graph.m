@@ -1,5 +1,5 @@
 clear
-model_name  = 'cGAN_5pic_1y_train_2';
+model_name  = 'cGAN_5pic_1y_train_2.1';
 
 cd '/home/lab/orel_ws/project/model_training/'
 files = strsplit(ls(model_name + "/losses*.mat"),'\n');
@@ -39,28 +39,35 @@ xlabel('Epoch','Interpreter', 'latex'); ylabel('${J_{D_{reff}}}$','Interpreter',
 set(gcf,'Position', size)
 grid on
 
-lr_files = strsplit(ls(model_name + "/lr_rates*.mat"),'\n');
-lr_rates = load(lr_files{end-1});
 figure(6)
-plot(lr_rates.gen_lr)
-hold on
-plot(lr_rates.disc_lr)
-legend('Gen LR','Disc LR'); grid on;
-set(gcf,'Position', size)
-xlabel('Epoch','Interpreter', 'latex'); ylabel('Learning rate','Interpreter', 'latex')
-hold off
-
-figure(5)
 plot(last.Reff_disc_loss)
 xlabel('Epoch','Interpreter', 'latex'); ylabel('${J_{D_{reff}}}$','Interpreter', 'latex')
 set(gcf,'Position', size)
 grid on
 
+
+lr_files = strsplit(ls(model_name + "/lr_rates*.mat"),'\n');
+lr_rates = load(lr_files{end-1});
+lr_rates.title = lr_files{end-1};
+lr_rates_2 = load(lr_files{end-2});
+lr_rates_2.title = lr_files{end-2};
+
 figure(7)
-plot(gen_lr)
+plot(lr_rates.gen_lr)
 hold on
-plot(disc_lr)
-legend('Gen LR','Disc LR'); grid on;
+plot(lr_rates.disc_lr)
+legend('Gen LR','Disc LR'); grid on; title(lr_rates.title);
+set(gcf,'Position', size)
+xlabel('Epoch','Interpreter', 'latex'); ylabel('Learning rate','Interpreter', 'latex')
+hold off
+
+
+
+figure(8)
+plot(lr_rates_2.gen_lr)
+hold on
+plot(lr_rates_2.disc_lr)
+legend('Gen LR','Disc LR'); grid on; title(lr_rates_2.title);
 set(gcf,'Position', size)
 xlabel('Epoch','Interpreter', 'latex'); ylabel('Learning rate','Interpreter', 'latex')
 hold off

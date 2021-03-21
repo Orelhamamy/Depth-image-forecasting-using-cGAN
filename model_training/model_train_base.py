@@ -297,7 +297,7 @@ def learning_rate_disc():
         return learning_rates[1,-1]*0.985
     else:
         return learning_rates[1,-1]*0.935
-    
+    '''
 def learning_rate_gen_gens_aspect():
     if epoch+1<50 or learning_rates[0,-1]<2e-6: # or epoch%10!=0
         return learning_rates[0,-1]
@@ -317,7 +317,7 @@ def learning_rate_disc_gen_aspect():
         return learning_rates[1,-1]*0.985
     else:
         return learning_rates[1,-1]*0.935
-    
+    '''
 def show_img(images,target):
     for i in range(images.shape[-1]):
         axs = plt.subplot(3,5,i+1)
@@ -437,8 +437,8 @@ if __name__ =='__main__':
         discriminator_reff = tf.keras.models.load_model(model_name+'/discriminator_reff')
         generator = Generator()
         discriminator = Discriminator()
-        generator_optimizer = tf.keras.optimizers.Adam(learning_rate_gen_gens_aspect, beta_1=BETA_1_GEN, beta_2=BETA_2_GEN)
-        discriminator_optimizer = tf.keras.optimizers.Adam(learning_rate_disc_gen_aspect, beta_1=BETA_1_DISC, beta_2=BETA_2_DISC)
+        generator_optimizer = tf.keras.optimizers.Adam(learning_rate_gen, beta_1=BETA_1_GEN, beta_2=BETA_2_GEN)
+        discriminator_optimizer = tf.keras.optimizers.Adam(learning_rate_disc, beta_1=BETA_1_DISC, beta_2=BETA_2_DISC)
         losses_val = np.zeros((4,0))
         losses_avg = np.zeros((5,0)) 
         learning_rates = np.array([[LR_GEN],[LR_DISC]])

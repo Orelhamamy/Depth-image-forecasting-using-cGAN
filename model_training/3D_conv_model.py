@@ -5,6 +5,7 @@ import os
 import time
 import cv2
 import tensorflow as tf
+import numpy as np
 import matplotlib.pyplot as plt
 import matplotlib.gridspec as gridspec
 import datetime
@@ -41,50 +42,42 @@ class Three_d_conv_model():
     def __init__(self, data_set_path, model_name,load_model = False, OBSERVE_SIZE = 5,
                  Y_TRAIN_SIZE = 1, HEIGHT = 128, WIDTH = 128, ALPHA = 0.2, kernel_size = 3, OUTPUT_SIZE = 5,
                  LAMBDA = 100, LR_GEN = 2e-4, BETA_1_GEN =0.5, BETA_2_GEN =.999, LR_DISC= 2e-4, BETA_1_DISC =0.5, 
-                 BETA_2_DISC =.999, ITERATION_GEN = 1 ,ITERATION_DISC = 1, log_dir = 'logs/' , concate = True):
+                 BETA_2_DISC =.999, concate = True):
+        
         file_num = lambda x: int(x[x.index('--')+2:x.index('.jpg')])
         self.initializer = tf.random_normal_initializer(0.,0.02) # Var= 0.02
+        self.model_name = model_name
         if not load_model:
             self.OBSERVE_SIZE = OBSERVE_SIZE ; self.Y_TRAIN_SIZE = Y_TRAIN_SIZE
             self.HEIGHT = HEIGHT; self.WIDTH = WIDTH 
-            self.ALPHA = ALPHA # Alpha for leakyReLU
             self.kernel_size = kernel_size; self.output_size = OUTPUT_SIZE
+            self.ALPHA = ALPHA # Alpha for leakyReLU
             self.LAMBDA = LAMBDA
             self.concate = concate
             self.data_set_path = data_set_path
-
-            self.log_dir = log_dir
-            self.iteration_gen = ITERATION_GEN ; self.iteration_disc = ITERATION_DISC       
-            #self.create_generator()
-            #self.create_discriminator()
-            self.lr_gen = LR_GEN; self.lr_disc = LR_DISC; self.beta= [BETA_1_GEN, BETA_2_GEN, BETA_1_DISC, BETA_1_GEN]
+            self.beta= [BETA_1_GEN, BETA_2_GEN, BETA_1_DISC, BETA_2_DISC]
+            self.learning_rates = np.array([[LR_GEN],[LR_DISC]])
             self.save_pram(model_name)
 
-            
         else:
-            # self.generator = tf.keras.models.load_model(model_name + '/generator')
-            # self.discriminator = tf.keras.models.load_model(model_name + '/discriminator')
+            self.generator = tf.keras.models.load_model(model_name + '/generator')
+            self.discriminator = tf.keras.models.load_model(model_name + '/discriminator')
             self.load_parm(model_name)
 
-        try:
-            files = [ f.decode('utf-8') for f in os.listdir(self.data_set_path)]
-        except AttributeError:
-            files = os.listdir(self.data_set_path)
-        self.file_list = [[file, file_num(file)] for file in files
-                  if file.endswith('.jpg')]
+        self.file_list = [[file, file_num(file)] for file in os.listdir(self.data_set_path) 
+                  if str(file).endswith('.jpg')]
         self.file_list.sort(key = lambda x:x[1])
+        
         self.loss_object = tf.keras.losses.BinaryCrossentropy(from_logits = True)
         self.initializer = tf.random_normal_initializer(0.,0.02) # Var =0.02
-
-        self.gen_optimizer = tf.keras.optimizers.Adam(LR_GEN, beta_1 =self.beta[0], beta_2 = self.beta[1])
-        self.disc_optimizer = tf.keras.optimizers.Adam(LR_DISC, beta_1= self.beta[2], beta_2 = self.beta[3])
+        # self.load_data()
+        # self.gen_optimizer = tf.keras.optimizers.Adam(self.learning_rates[0][0], beta_1 =self.beta[0], beta_2 = self.beta[1])
+        # self.disc_optimizer = tf.keras.optimizers.Adam(self.learning_rates[1][0], beta_1= self.beta[2], beta_2 = self.beta[3])
         
     def save_pram(self,model_name):
         dic = {'OBSERVE_SIZE': self.OBSERVE_SIZE,'Y_train_size':self.Y_TRAIN_SIZE, 'Height':self.HEIGHT,'Width':self.WIDTH, 'Alpha':self.ALPHA,
                'Kernel_size': self.kernel_size,'Output_size':self.output_size, 'Lambda':self.LAMBDA, 'Concate': self.concate,
-               'Data_set_path': self.data_set_path, 'Log_dir':self.log_dir, 'Iteration_gen':self.iteration_gen,
-               'Iteration_disc': self.iteration_disc, 'Learning_rate': [self.lr_gen, self.lr_disc],
-               'Beta': self.beta}
+               'Data_set_path': self.data_set_path, 'Learning_rates': self.learning_rates, 'Beta': self.beta}
         if not os.path.exists(model_name):
             os.makedirs(model_name)
 
@@ -100,9 +93,7 @@ class Three_d_conv_model():
         self.LAMBDA = param_dic['Lambda'][0][0]
         self.concate = param_dic['Concate'][0][0]
         self.data_set_path = param_dic['Data_set_path'][0]
-        self.log_dir = param_dic['Log_dir'][0]
-        self.iteration_gen = param_dic['Iteration_gen'][0][0] ; self.iteration_disc = param_dic['Iteration_disc'][0][0]
-        self.lr_gen = param_dic['Learning_rate'][0][0]; self.lr_disc = param_dic['Learning_rate'][0][1]; self.beta=param_dic['Beta'][0]
+        self.learning_rates = param_dic['Learning_rates'][:,0]; self.beta=param_dic['Beta'][0]
         
     def read_img(self, img_name):
         x = tf.keras.preprocessing.image.load_img(self.data_set_path + img_name, 
@@ -112,34 +103,28 @@ class Three_d_conv_model():
         return x
     
     def load_data(self):
-        self.data = self.read_img(self.file_list)
-        '''
-        counter = 1 # Count the maximum size of y_train
-        y_train_size = Y_TRAIN_SIZE
-        for i in range(len(self.file_list)-self.OBSERVE_SIZE):
-            counter = 1 # Count the maximum size of y_train
-            if self.file_list[i][1]+self.OBSERVE_SIZE==self.file_list[i+self.OBSERVE_SIZE][1]:
-                y_train_size = len(self.file_list)-i-self.OBSERVE_SIZE if (i+self.OBSERVE_SIZE+Y_TRAIN_SIZE>=len(self.file_list)) else Y_TRAIN_SIZE
-                while (counter < y_train_size) and (self.file_list[i+counter+self.OBSERVE_SIZE-1][1]+1==self.file_list[i+counter+self.OBSERVE_SIZE][1]):
-                    counter+=1
-                x, y = self.read_img(self.file_list[i:i+self.OBSERVE_SIZE+counter], counter)
-'''
+        self.train_sequence = self.read_img(self.file_list[0][0])
+        for img_name in self.file_list[1:]:
+            self.train_sequence = np.concatenate((self.train_sequence , self.read_img(img_name[0])), axis=2)
+
     
-    def generate_images(self, sample_num, model = False, training = False, columns = 5, save = False):
+    def generate_images(self, inx, model = False, training = False, columns = 5, save = False):
         rows = self.OBSERVE_SIZE//columns +(self.OBSERVE_SIZE%columns > 0) +  1
+        print(rows)
         if model:
-            prediction = self.generator(self.x_train[sample_num][tf.newaxis, ..., tf.newaxis], training= training)
+            prediction = self.generator(self.x_train[inx][tf.newaxis, ..., tf.newaxis], training= training)
             plt.subplot(rows, columns, (rows-1)*columns + columns//2 +1)
             plt.imshow(prediction[0,...,0], cmap = 'gray')
             plt.axis('off')
             plt.title('Predict')
         for i in range(self.OBSERVE_SIZE):
             axs = plt.subplot(rows, columns, i+1)
-            axs.imshow(self.x_train[sample_num][:,:,i], cmap = 'gray')
+            axs.imshow(self.train_sequence[...,inx+i], cmap = 'gray')
             plt.title(i+1)
             plt.axis('off')
-        plt.subplot(rows, columns, (rows-1)*columns + columns//2)
-        plt.imshow(self.y_train[sample_num][...,1], cmap = 'gray')
+        plt.subplot(rows, columns, np.ceil((rows-1)*columns + columns//2)+1)
+        print((rows-1)*columns + columns//2)
+        plt.imshow(self.train_sequence[...,inx+self.OBSERVE_SIZE+1], cmap = 'gray')
         plt.title('Output')
         plt.axis('off')
         if not save:
@@ -147,7 +132,6 @@ class Three_d_conv_model():
         else:
             plt.savefig(save)
         
-    
     def downsample(self, filters, size, apply_batchnorm = False):
         result = tf.keras.Sequential()
         result.add(tf.keras.layers.Conv3D(filters, size, strides=(2,2,1), padding='same',
@@ -165,7 +149,7 @@ class Three_d_conv_model():
         if apply_batchnorm:
             result.add(tf.keras.layers.BatchNormalization())
         if apply_dropout:
-            result.add(tf.keras.layes.Dropout(apply_dropout))
+            result.add(tf.keras.layers.Dropout(apply_dropout))
         
         result.add(tf.keras.layers.ReLU())
         return result
@@ -183,9 +167,9 @@ class Three_d_conv_model():
             self.downsample(512, self.kernel_size)
             ]
         upping = [
-            self.upsample(256, self.kernel_size),
-            self.upsample(128, self.kernel_size),
-            self.upsample(52, self.kernel_size),
+            self.upsample(256, self.kernel_size, apply_dropout = 0.5),
+            self.upsample(128, self.kernel_size, apply_dropout = 0.5),
+            self.upsample(52, self.kernel_size, apply_dropout = 0.5),
             self.upsample(36, self.kernel_size),
             self.upsample(28, self.kernel_size),
             self.upsample(10, self.kernel_size)
@@ -203,38 +187,36 @@ class Three_d_conv_model():
         for up, conc in zip(upping, connections):
             x = up (x)
             if self.concate:
-                shape = conc.shape
-                if shape[3]!=1:
-                    conc = tf.keras.layers.Reshape((shape[1], shape[2], 1, shape[3]*shape[4]))(conc)
                 x = tf.keras.layers.Concatenate(axis = -1)([conc, x])
         x = last(x)
         
         self.generator = tf.keras.Model(inputs = inputs, outputs = x)
     
     def generator_loss(self, disc_gen_output, gen_output, target):
-        gen_loss = self.loss_object(tf.ones_like(disc_gen_output),disc_gen_output)
         
+        gen_loss = self.loss_object(tf.ones_like(disc_gen_output),disc_gen_output) 
         l1_loss = tf.reduce_mean(tf.abs(gen_output - target))
         tot_loss = gen_loss +self.LAMBDA * l1_loss
         return tot_loss, gen_loss, l1_loss
         
     def create_discriminator(self):
-        in_imgs = tf.keras.layers.Input(shape = [self.HEIGHT, self.WIDTH, self.OBSERVE_SIZE], name = 'input_imgs')
-        tar_img = tf.keras.layers.Input(shape = [self.HEIGHT, self.WIDTH, self.output_size], name = 'target_img')
         
-        conc = tf.keras.layers.Concatenate()([in_imgs, tar_img])
+        in_imgs = tf.keras.layers.Input(shape = [self.HEIGHT, self.WIDTH, self.OBSERVE_SIZE, 1], name = 'input_imgs')
+        tar_img = tf.keras.layers.Input(shape = [self.HEIGHT, self.WIDTH, self.output_size, 1], name = 'target_img')
         
-        down1 = tf.keras.layers.Conv2D(32, self.kernel_size, strides = 2, kernel_initializer = self.initializer,
+        conc = tf.keras.layers.Concatenate(axis = 3)([in_imgs, tar_img])
+        
+        down1 = tf.keras.layers.Conv3D(32, self.kernel_size, strides = (2,2,2), kernel_initializer = self.initializer,
                                        padding = 'same', use_bias=False)(conc)
-        down2 = tf.keras.layers.Conv2D(128, self.kernel_size, strides = 2, kernel_initializer = self.initializer, 
+        down2 = tf.keras.layers.Conv3D(128, self.kernel_size, strides = (2,2,2), kernel_initializer = self.initializer, 
                                        padding='same', use_bias = False)(down1)
-        conv1 = tf.keras.layers.Conv2D(256, self.kernel_size, strides = 1, kernel_initializer = self.initializer,
-                                       padding = 'valid', use_bias = False)(down2)
-        conv2 = tf.keras.layers.Conv2D(512, self.kernel_size, strides = 1, kernel_initializer = self.initializer,
+        conv1 = tf.keras.layers.Conv3D(256, self.kernel_size, strides = 1, kernel_initializer = self.initializer,
+                                       padding = 'same', use_bias = False)(down2)
+        conv2 = tf.keras.layers.Conv3D(512, self.kernel_size, strides = 1, kernel_initializer = self.initializer,
                                        padding = 'same', use_bias = False)(conv1)
         batch_norm = tf.keras.layers.BatchNormalization()(conv2)
         active_relu = tf.keras.layers.LeakyReLU(self.ALPHA)(batch_norm)
-        last = tf.keras.layers.Conv2D(1, self.kernel_size, strides = 1, kernel_initializer = self.initializer,
+        last = tf.keras.layers.Conv3D(1, self.kernel_size, strides = 1, kernel_initializer = self.initializer,
                                       padding = 'same', use_bias = False)(active_relu)
         self.discriminator = tf.keras.Model(inputs = [in_imgs, tar_img], outputs = last)
     
@@ -267,7 +249,6 @@ class Three_d_conv_model():
             tf.summary.scalar('Gen_l1_loss', gen_l1_loss, step = epoch)
             tf.summary.scalar('Disc_loss', disc_loss, step = epoch)
     '''
-    @tf.function
     def train_step(self, input_imgs, target, epoch):
         for train_gen in range(self.iteration_gen):
             with tf.GradientTape() as gen_tape:
@@ -293,8 +274,7 @@ class Three_d_conv_model():
             tf.summary.scalar('Disc_loss', disc_loss, step = epoch)
     
     def fit(self, epochs, model_name):
-        self.summary_writer = tf.summary.create_file_writer(
-            self.log_dir + 'fit/'+model_name + datetime.datetime.now().strftime(' %d.%m.%y--%H:%M:%S'))
+
         if not os.path.exists(model_name+'/figs'):
             os.makedirs(model_name+'/figs')
         for epoch in range(epochs):
@@ -321,12 +301,15 @@ class Three_d_conv_model():
           
 
     def print_model(self):
-        tf.keras.utils.plot_model(self.generator, show_shapes=True, dpi = 96, to_file='Generator.png')
-        tf.keras.utils.plot_model(self.discriminator, show_shapes=True, dpi = 96, to_file='Discriminator.png')
+        tf.keras.utils.plot_model(self.generator, show_shapes=True, dpi = 96, to_file='{}/Generator.png'.format(self.model_name))
+        tf.keras.utils.plot_model(self.discriminator, show_shapes=True, dpi = 96, to_file='{}/Discriminator.png'.format(self.model_name))
 
 # model = Three_d_conv_model('/home/lab/orel_ws/project/simulation_ws/data_set/','3D_conv_try',OBSERVE_SIZE=3,
 #                             Y_TRAIN_SIZE=2,LR_GEN=2e-5,concate=False)
-model_2 = Three_d_conv_model('/home/lab/orel_ws/project/src/simulation_ws/data_set/','3D_conv_try')
+model = Three_d_conv_model('/home/lab/orel_ws/project/src/simulation_ws/data_set/','3D_conv_try')
+model.create_generator()
+model.create_discriminator()
+model.print_model()
 # model = Three_d_conv_model(data_set_path,Y_TRAIN_SIZE=1)
 # model.create_generator()
 # model.create_discriminator()
