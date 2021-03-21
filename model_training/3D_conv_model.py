@@ -9,6 +9,7 @@ import numpy as np
 import matplotlib.pyplot as plt
 import matplotlib.gridspec as gridspec
 import datetime
+import copy
 from scipy.io import savemat, loadmat
 '''
 data_set_path = '/home/lab/orel_ws/project/simulation_ws/data_set/'
@@ -26,7 +27,7 @@ VAR = 0.02 # Variance of initialize kernels.
 ALPHA = 0.2 # Alpha for leakyReLU
 DROP_RATE = 0.5 # Dropout rate for upsample.
 OBSERVE_SIZE = 5 # How many img to observe
-Y_TRAIN_SIZE = 5 # How many img to learn recursive
+Y_TRAIN_SIZE = 5 # How many img to learn recursive 1= without recursion
 OUTPUT_SIZE = 1
 LAMBDA = 100 # determine the weight of l1 in Loss function (generator) LAMBDA = 0 -> cancel l1_loss
 loss_object  = tf.keras.losses.BinaryCrossentropy(from_logits=True)
@@ -39,10 +40,10 @@ checkpoint_dir = './traning_checkpoints'
 
 
 class Three_d_conv_model():
-    def __init__(self, data_set_path, model_name,load_model = False, OBSERVE_SIZE = 5,
-                 Y_TRAIN_SIZE = 1, HEIGHT = 128, WIDTH = 128, ALPHA = 0.2, kernel_size = 3, OUTPUT_SIZE = 5,
+    def __init__(self, data_set_path, model_name,load_model = False, OBSERVE_SIZE = 10,
+                 Y_TRAIN_SIZE = 1, HEIGHT = 128, WIDTH = 128, ALPHA = 0.2, kernel_size = 3,
                  LAMBDA = 100, LR_GEN = 2e-4, BETA_1_GEN =0.5, BETA_2_GEN =.999, LR_DISC= 2e-4, BETA_1_DISC =0.5, 
-                 BETA_2_DISC =.999, concate = True):
+                 BETA_2_DISC =.999, prediction_gap = 0, concate = True):
         
         file_num = lambda x: int(x[x.index('--')+2:x.index('.jpg')])
         self.initializer = tf.random_normal_initializer(0.,0.02) # Var= 0.02
@@ -50,13 +51,14 @@ class Three_d_conv_model():
         if not load_model:
             self.OBSERVE_SIZE = OBSERVE_SIZE ; self.Y_TRAIN_SIZE = Y_TRAIN_SIZE
             self.HEIGHT = HEIGHT; self.WIDTH = WIDTH 
-            self.kernel_size = kernel_size; self.output_size = OUTPUT_SIZE
+            self.kernel_size = kernel_size; 
             self.ALPHA = ALPHA # Alpha for leakyReLU
             self.LAMBDA = LAMBDA
             self.concate = concate
             self.data_set_path = data_set_path
             self.beta= [BETA_1_GEN, BETA_2_GEN, BETA_1_DISC, BETA_2_DISC]
             self.learning_rates = np.array([[LR_GEN],[LR_DISC]])
+            self.prediction_gap = prediction_gap
             self.save_pram(model_name)
 
         else:
@@ -70,14 +72,16 @@ class Three_d_conv_model():
         
         self.loss_object = tf.keras.losses.BinaryCrossentropy(from_logits = True)
         self.initializer = tf.random_normal_initializer(0.,0.02) # Var =0.02
+        
         # self.load_data()
         # self.gen_optimizer = tf.keras.optimizers.Adam(self.learning_rates[0][0], beta_1 =self.beta[0], beta_2 = self.beta[1])
         # self.disc_optimizer = tf.keras.optimizers.Adam(self.learning_rates[1][0], beta_1= self.beta[2], beta_2 = self.beta[3])
         
     def save_pram(self,model_name):
         dic = {'OBSERVE_SIZE': self.OBSERVE_SIZE,'Y_train_size':self.Y_TRAIN_SIZE, 'Height':self.HEIGHT,'Width':self.WIDTH, 'Alpha':self.ALPHA,
-               'Kernel_size': self.kernel_size,'Output_size':self.output_size, 'Lambda':self.LAMBDA, 'Concate': self.concate,
-               'Data_set_path': self.data_set_path, 'Learning_rates': self.learning_rates, 'Beta': self.beta}
+               'Kernel_size': self.kernel_size, 'Lambda':self.LAMBDA, 'Concate': self.concate,
+               'Data_set_path': self.data_set_path, 'Learning_rates': self.learning_rates, 'Beta': self.beta,
+               'Prediction_gap':self.prediction_gap}
         if not os.path.exists(model_name):
             os.makedirs(model_name)
 
@@ -89,11 +93,12 @@ class Three_d_conv_model():
         self.OBSERVE_SIZE = param_dic['OBSERVE_SIZE'][0][0]; self.Y_TRAIN_SIZE = param_dic['Y_train_size'][0][0]
         self.HEIGHT = param_dic['Height'][0][0]; self.WIDTH = param_dic['Width'][0][0]
         self.ALPHA = param_dic['Alpha'][0][0] # Alpha for leakyReLU
-        self.kernel_size = param_dic['Kernel_size'][0][0]; self.output_size = param_dic['Output_size'][0][0]
+        self.kernel_size = param_dic['Kernel_size'][0][0];
         self.LAMBDA = param_dic['Lambda'][0][0]
         self.concate = param_dic['Concate'][0][0]
         self.data_set_path = param_dic['Data_set_path'][0]
         self.learning_rates = param_dic['Learning_rates'][:,0]; self.beta=param_dic['Beta'][0]
+        self.prediction_gap = param_dic['Prediction_gap'][0][0]
         
     def read_img(self, img_name):
         x = tf.keras.preprocessing.image.load_img(self.data_set_path + img_name, 
@@ -106,6 +111,7 @@ class Three_d_conv_model():
         self.train_sequence = self.read_img(self.file_list[0][0])
         for img_name in self.file_list[1:]:
             self.train_sequence = np.concatenate((self.train_sequence , self.read_img(img_name[0])), axis=2)
+        self.data_set_size = self.train_sequence.shape[2]
 
     
     def generate_images(self, inx, model = False, training = False, columns = 5, save = False):
@@ -174,7 +180,7 @@ class Three_d_conv_model():
             self.upsample(28, self.kernel_size),
             self.upsample(10, self.kernel_size)
             ]
-        last = tf.keras.layers.Conv3DTranspose(self.output_size, self.kernel_size, strides = (2,2,1), 
+        last = tf.keras.layers.Conv3DTranspose(1, self.kernel_size, strides = (2,2,1), 
                                                padding= 'same', activation = 'tanh', 
                                                kernel_initializer = self.initializer)
         x = inputs
@@ -202,7 +208,7 @@ class Three_d_conv_model():
     def create_discriminator(self):
         
         in_imgs = tf.keras.layers.Input(shape = [self.HEIGHT, self.WIDTH, self.OBSERVE_SIZE, 1], name = 'input_imgs')
-        tar_img = tf.keras.layers.Input(shape = [self.HEIGHT, self.WIDTH, self.output_size, 1], name = 'target_img')
+        tar_img = tf.keras.layers.Input(shape = [self.HEIGHT, self.WIDTH, self.OBSERVE_SIZE, 1], name = 'target_imgs')
         
         conc = tf.keras.layers.Concatenate(axis = 3)([in_imgs, tar_img])
         
@@ -210,13 +216,13 @@ class Three_d_conv_model():
                                        padding = 'same', use_bias=False)(conc)
         down2 = tf.keras.layers.Conv3D(128, self.kernel_size, strides = (2,2,2), kernel_initializer = self.initializer, 
                                        padding='same', use_bias = False)(down1)
-        conv1 = tf.keras.layers.Conv3D(256, self.kernel_size, strides = 1, kernel_initializer = self.initializer,
+        conv1 = tf.keras.layers.Conv3D(256, self.kernel_size, strides = (1,1,2), kernel_initializer = self.initializer,
                                        padding = 'same', use_bias = False)(down2)
-        conv2 = tf.keras.layers.Conv3D(512, self.kernel_size, strides = 1, kernel_initializer = self.initializer,
+        conv2 = tf.keras.layers.Conv3D(512, self.kernel_size, strides = (1,1,2), kernel_initializer = self.initializer,
                                        padding = 'same', use_bias = False)(conv1)
         batch_norm = tf.keras.layers.BatchNormalization()(conv2)
         active_relu = tf.keras.layers.LeakyReLU(self.ALPHA)(batch_norm)
-        last = tf.keras.layers.Conv3D(1, self.kernel_size, strides = 1, kernel_initializer = self.initializer,
+        last = tf.keras.layers.Conv3D(1, self.kernel_size, strides = (1,1,2), kernel_initializer = self.initializer,
                                       padding = 'same', use_bias = False)(active_relu)
         self.discriminator = tf.keras.Model(inputs = [in_imgs, tar_img], outputs = last)
     
@@ -226,75 +232,60 @@ class Three_d_conv_model():
         real_loss = self.loss_object(tf.ones_like(disc_real_output), disc_real_output)
         
         return gen_loss + real_loss
-    '''
-    @tf.function
-    def train_step(self, input_imgs, target, epoch):
+   
+    def train_step(self, input_imgs, target, ):
         with tf.GradientTape() as gen_tape, tf.GradientTape() as disc_tape:
-            for train_gen in range(self.iteration_gen):
-                gen_output  = self.generator(input_imgs, training = True)
-                disc_gen_output = self.discriminator([input_imgs, gen_output[...,0]], training = True)
-                gen_tot_loss, gen_loss, gen_l1_loss = self.generator_loss(disc_gen_output, gen_output[...,0], target)
+            
+            gen_output  = self.generator(input_imgs, training = True)
+            disc_gen_output = self.discriminator([input_imgs, gen_output[...,0]], training = True)
+            gen_tot_loss, gen_loss, gen_l1_loss = self.generator_loss(disc_gen_output, gen_output[...,0], target)
+            
+            gradient_gen = gen_tape.gradient(gen_tot_loss, self.generator.trainable_variables)
+            self.gen_optimizer.apply_gradients(zip(gradient_gen, self.generator.trainable_variables))
+       
+    
+            disc_real_output = self.discriminator([input_imgs, target], training = True)
+            disc_loss = self.discriminator_loss(disc_gen_output, disc_real_output)
                 
-                gradient_gen = gen_tape.gradient(gen_tot_loss, self.generator.trainable_variables)
-                self.gen_optimizer.apply_gradients(zip(gradient_gen, self.generator.trainable_variables))
-            for train_disc in range(self.iteration_disc):
-                disc_real_output = self.discriminator([input_imgs, target], training = True)
-                disc_loss = self.discriminator_loss(disc_gen_output, disc_real_output)
-                
-                gradient_disc = disc_tape.gradient(disc_loss, self.discriminator.trainable_variables)
-                self.disc_optimizer.apply_gradients(zip(gradient_disc, self.discriminator.trainable_variables))
-        with self.summary_writer.as_default():
-            tf.summary.scalar('Gen_total_loss', gen_tot_loss, step = epoch)
-            tf.summary.scalar('Gen_loss', gen_loss, step = epoch)
-            tf.summary.scalar('Gen_l1_loss', gen_l1_loss, step = epoch)
-            tf.summary.scalar('Disc_loss', disc_loss, step = epoch)
-    '''
-    def train_step(self, input_imgs, target, epoch):
-        for train_gen in range(self.iteration_gen):
-            with tf.GradientTape() as gen_tape:
-                gen_output  = self.generator(input_imgs, training = True)
-                disc_gen_output = self.discriminator([input_imgs, gen_output[...,0]], training = True)
-                gen_tot_loss, gen_loss, gen_l1_loss = self.generator_loss(disc_gen_output, gen_output[...,0], target)
-                
-                gradient_gen = gen_tape.gradient(gen_tot_loss, self.generator.trainable_variables)
-                self.gen_optimizer.apply_gradients(zip(gradient_gen, self.generator.trainable_variables))
-           
-        for train_disc in range(self.iteration_disc):
-            with tf.GradientTape() as disc_tape:
-                disc_real_output = self.discriminator([input_imgs, target], training = True)
-                disc_loss = self.discriminator_loss(disc_gen_output, disc_real_output)
-                    
-                gradient_disc = disc_tape.gradient(disc_loss, self.discriminator.trainable_variables)
-                self.disc_optimizer.apply_gradients(zip(gradient_disc, self.discriminator.trainable_variables))
+            gradient_disc = disc_tape.gradient(disc_loss, self.discriminator.trainable_variables)
+            self.disc_optimizer.apply_gradients(zip(gradient_disc, self.discriminator.trainable_variables))
         
-        with self.summary_writer.as_default():
-            tf.summary.scalar('Gen_total_loss', gen_tot_loss, step = epoch)
-            tf.summary.scalar('Gen_loss', gen_loss, step = epoch)
-            tf.summary.scalar('Gen_l1_loss', gen_l1_loss, step = epoch)
-            tf.summary.scalar('Disc_loss', disc_loss, step = epoch)
+
+    def sample_imgs(self, epoch, model_name):
+        self.generate_images(30, model = self.generator, save = '{}/figs/epoch--{}.png'.format(model_name,epoch+1))
+        inx = tf.random.uniform([1],0,self.data_set_size - self.OBSERVE_SIZE-self.prediction_gap -1, dtype = tf.dtype.int32).numpy()[0]
+        self.generate_images(inx, model = self.generator, save = '{}/figs/random/epoch--{}_inx.png'.format(model_name,epoch+1,inx))
+    
     
     def fit(self, epochs, model_name):
-
+        self.losses = np.zeros((5,0))
         if not os.path.exists(model_name+'/figs'):
             os.makedirs(model_name+'/figs')
+        with open(model_name +'/read me.txt','a') as f:
+               f.write('\n {model_name} {time and date}, Epochs:{}, Y_train (recursive):{}, Prediction gap:{}.'
+                       .format(model_name, datetime.datetime.now().strftime('%Y.%m.%d--%H:%M:%S'), epochs,
+                               self.Y_TRAIN_SIZE, self.prediction_gap))
+               f.close()
+        self.sample_imgs(-1, model_name)
         for epoch in range(epochs):
             start = time.time()
             print('Epoch:', epoch+1)
-            with open('log.txt','a') as f:
-                print('Epoch:', epoch+1, file=f)
-            for n, (input_imgs, target_img) in enumerate(zip(self.x_train, self.y_train)):
-                for i in range(tf.shape(target_img)[2]):
-                    self.train_step(input_imgs[tf.newaxis,...], target_img[tf.newaxis,:,:,i], epoch+1)
-                    gen_img = self.generator(input_imgs[tf.newaxis,...])
-                    input_imgs = tf.concat([input_imgs, gen_img[0,...,0]], axis = -1)
-                    input_imgs = input_imgs[:,:,:self.OBSERVE_SIZE]
-                print('.',end='')
-                if (n+1)%100==0:
+            for img_inx in range(self.data_set_size-self.OBSERVE_SIZE-self.prediction_gap-1):
+                input_seq = copy.copy(self.train_sequence[:,:,img_inx:img_inx+self.OBSERVE_SIZE])
+                for rec in range(self.Y_TRAIN_SIZE):
+                    self.train_step(input_seq[tf.newaxis,...,tf.newaxis], 
+                                    self.train_sequence[:,:,img_inx+self.OBSERVE_SIZE+self.prediction_gap+rec+1],
+                                    epoch)
+                    gen_img = self.generator(input_seq[tf.newaxis,...,tf.newaxis])
+                    input_seq = tf.concat([input_seq, gen_img[0,...,0]], axis = -1)
+                    input_seq = input_seq[:,:,1:]
+                print('.')
+                if (epoch+1)%100==0:
                     print('\n')
-            if (epoch+1)%20==0:
-                self.generate_images(0, model =True, save = '{}/figs/epoch-{}.png'.format(model_name,epoch+1))
+            if (epoch+1)%200==0:
                 self.generator.save(model_name+'/generator')
                 self.discriminator.save(model_name + '/discriminator')
+            self.sample_imgs(epoch, model_name)
             print('\nTime taken to epoch: {} in sec {}\n'.format(epoch, time.time()-start))
         self.generator.save(model_name+'/generator')
         self.discriminator.save(model_name + '/discriminator')
@@ -306,10 +297,11 @@ class Three_d_conv_model():
 
 # model = Three_d_conv_model('/home/lab/orel_ws/project/simulation_ws/data_set/','3D_conv_try',OBSERVE_SIZE=3,
 #                             Y_TRAIN_SIZE=2,LR_GEN=2e-5,concate=False)
-model = Three_d_conv_model('/home/lab/orel_ws/project/src/simulation_ws/data_set/','3D_conv_try')
+model = Three_d_conv_model('/home/orel/project/src/simulation_ws/data_set/','3D_conv_try')
 model.create_generator()
 model.create_discriminator()
 model.print_model()
+
 # model = Three_d_conv_model(data_set_path,Y_TRAIN_SIZE=1)
 # model.create_generator()
 # model.create_discriminator()
