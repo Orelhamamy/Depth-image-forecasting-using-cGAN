@@ -24,15 +24,15 @@ VAR = 0.02 # Variance of initialize kernels.
 ALPHA = 0.2 # Alpha for leakyReLU.
 DROP_RATE = 0.5 # Dropout rate for upsample.
 OBSERVE_SIZE = 5 # How many img to observe.
-Y_TRAIN_SIZE = 1 # How many img to learn recursive.
-GAP_PREDICT = 2 # The gap between the last observe and the predict.
+Y_TRAIN_SIZE = 2 # How many img to learn recursive.
+GAP_PREDICT = 0 # The gap between the last observe and the predict.
 OUTPUT_SIZE = 1
 LAMBDA = 20 # determine the weight of l1 in Loss function (generator) LAMBDA = 0 -> cancel l1_loss
 loss_object  = tf.keras.losses.BinaryCrossentropy(from_logits=True)
 LR_GEN =15e-5; BETA_1_GEN =0.5; BETA_2_GEN =.5
 LR_DISC =2e-4; BETA_1_DISC =0.5; BETA_2_DISC =.5
 ITERATION_GEN = 1 ; ITERATION_DISC = 1
-model_name = 'cGAN_5pic_1y_train_2.1'
+model_name = 'cGAN_5pic_2y_train_2.2'
 data_set_path = '/home/lab/orel_ws/project/data_set_armadillo/3/'
 losses_val = np.zeros((4,0))
 losses_avg = np.zeros((5,0)) # [Gen_total_loss, Gen_loss, Gen_l1_loss, Disc_loss, Reff_disc_loss]
