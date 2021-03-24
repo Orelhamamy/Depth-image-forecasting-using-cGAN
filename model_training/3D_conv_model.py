@@ -40,7 +40,7 @@ checkpoint_dir = './traning_checkpoints'
 
 
 class Three_d_conv_model():
-    def __init__(self, data_set_path, model_name,load_model = False, OBSERVE_SIZE = 10,
+    def __init__(self, data_set_path, model_name,load_model = False, OBSERVE_SIZE = 5,
                  Y_TRAIN_SIZE = 1, HEIGHT = 128, WIDTH = 128, ALPHA = 0.2, kernel_size = 3,
                  LAMBDA = 100, LR_GEN = 2e-4, BETA_1_GEN =0.5, BETA_2_GEN =.999, LR_DISC= 2e-4, BETA_1_DISC =0.5, 
                  BETA_2_DISC =.999, prediction_gap = 0, concate = True):
@@ -71,7 +71,7 @@ class Three_d_conv_model():
         self.file_list.sort(key = lambda x:x[1])
         try:
             self.discriminator_reff = tf.keras.models.load_model(model_name+'/discriminator_reff')
-        except OSError:
+        except IOError:
             self.discriminator_reff = False
         
         self.loss_object = tf.keras.losses.BinaryCrossentropy(from_logits = True)
@@ -113,7 +113,7 @@ class Three_d_conv_model():
     
     def load_data(self):
         self.train_sequence = self.read_img(self.file_list[0][0])
-        for img_name in self.file_list[1:]:
+        for img_name in self.file_list[1:15]:
             self.train_sequence = np.concatenate((self.train_sequence , self.read_img(img_name[0])), axis=2)
         self.data_set_size = self.train_sequence.shape[2]
 
@@ -121,22 +121,21 @@ class Three_d_conv_model():
     def generate_images(self, inx, model = False, training = False, columns = 5, save = False):
         columns = self.OBSERVE_SIZE
         rows = 3 # input, target, prediction
-        print(rows)
         prediction = self.generator(self.train_sequence[tf.newaxis,:,:,inx:inx + self.OBSERVE_SIZE, tf.newaxis], training= training)[0,...,0]
         for i in range(self.OBSERVE_SIZE):
             axs = plt.subplot(rows, columns, i+1)
             axs.imshow(self.train_sequence[...,inx+i], cmap = 'gray')
-            plt.title(i+1)
+            # plt.title(i+1)
             plt.axis('off')
             plt.subplot(rows, columns, columns + i+1)
             plt.imshow(self.train_sequence[...,inx+self.OBSERVE_SIZE+i+1], cmap = 'gray')
-            plt.title('Output {}'.format(str(i)))
+            # plt.title('Output {}'.format(str(i)))
             plt.axis('off')
             if model:
                 plt.subplot(rows, columns, 2*columns + i+1)
                 plt.imshow(prediction[:,:,i], cmap = 'gray')
                 plt.axis('off')
-                plt.title('Predict')
+                # plt.title('Predict')
         plt.subplot(rows, columns, 1)
         plt.xlabel('Input')
         plt.subplot(rows, columns, columns+ 1)
@@ -243,12 +242,12 @@ class Three_d_conv_model():
         
         return gen_loss + real_loss
    
-    def train_step(self, input_imgs, target, ):
+    def train_step(self, input_imgs, target, epoch):
         with tf.GradientTape() as gen_tape, tf.GradientTape() as disc_tape:
             
             gen_output  = self.generator(input_imgs, training = True)
-            disc_gen_output = self.discriminator([input_imgs, gen_output[...,0]], training = True)
-            gen_tot_loss, gen_loss, gen_l1_loss = self.generator_loss(disc_gen_output, gen_output[...,0], target)
+            disc_gen_output = self.discriminator([input_imgs, gen_output], training = True)
+            gen_tot_loss, gen_loss, gen_l1_loss = self.generator_loss(disc_gen_output, gen_output, target)
             
             gradient_gen = gen_tape.gradient(gen_tot_loss, self.generator.trainable_variables)
             self.gen_optimizer.apply_gradients(zip(gradient_gen, self.generator.trainable_variables))
@@ -264,16 +263,16 @@ class Three_d_conv_model():
             
         
     def sample_imgs(self, epoch, model_name):
-        self.generate_images(30, model = self.generator, save = '{}/figs/epoch--{}.png'.format(model_name,epoch+1))
-        inx = tf.random.uniform([1],0,self.data_set_size - self.OBSERVE_SIZE-self.prediction_gap -1, dtype = tf.dtypes.int32).numpy()[0]
+        self.generate_images(1, model = self.generator, save = '{}/figs/epoch--{}.png'.format(model_name,epoch+1))
+        inx = tf.random.uniform([1],0,self.data_set_size - 2*self.OBSERVE_SIZE-self.prediction_gap, dtype = tf.dtypes.int32).numpy()[0]
         self.generate_images(inx, model = self.generator, save = '{}/figs/random/epoch--{}_inx.png'.format(model_name,epoch+1,inx))
     
     
     def fit(self, epochs, model_name):
         self.losses = np.zeros((5,0))
         self.losses_val = np.zeros((4,0))
-        if not os.path.exists(model_name+'/figs'):
-            os.makedirs(model_name+'/figs')
+        if not os.path.exists(model_name+'/figs/random'):
+            os.makedirs(model_name+'/figs/random')
         with open(model_name +'/read me.txt','a') as f:
                f.write('\n {} {}, Epochs:{}, Y_train (recursive):{}, Prediction gap:{}.'
                        .format(model_name, datetime.datetime.now().strftime('%Y.%m.%d--%H:%M:%S'), epochs,
@@ -285,7 +284,7 @@ class Three_d_conv_model():
         for epoch in range(epochs):
             start = time.time()
             reff_loss = 0
-            print('Epoch:', epoch+1)
+            print('Epoch:'+ str(epoch+1))
             
             for img_inx in range(self.data_set_size-2*self.OBSERVE_SIZE-self.prediction_gap):
                 target_inx = img_inx+self.OBSERVE_SIZE+self.prediction_gap+1
@@ -304,12 +303,13 @@ class Three_d_conv_model():
                                                              target[tf.newaxis,...,tf.newaxis]])
                         reff_real_loss, reff_gen_loss = self.discriminator_loss(disc_gen, disc_real)
                         reff_loss += reff_gen_loss/(self.data_set_size-2*self.OBSERVE_SIZE-self.prediction_gap)
-                    input_seq = tf.concat([input_seq, gen_img[0,...,0]], axis = 3)
+                    input_seq = tf.concat([input_seq, gen_img[0,...,0]], axis = 2)
                     input_seq = input_seq[:,:,1:]
-                print('.')
+                print('.' )
                 if (epoch+1)%100==0:
-                    print('\n')                    
-            self.losses = np.append(self.losses, np.append(self.losses_val.mean(axis=1),reff_loss, axis=0), axis = 1)
+                    print('\n')
+            print((self.losses_val.mean(axis=1).shape))                    
+            self.losses = np.append(self.losses, np.append(self.losses_val.mean(axis=1),reff_loss, axis=0).reshape((5,1)), axis = 1)
             if (epoch+1)%200==0:
                 if not self.discriminator_reff:
                     self.generator.save(model_name+'/generator_0')
@@ -335,7 +335,7 @@ class Three_d_conv_model():
 # model = Three_d_conv_model('/home/lab/orel_ws/project/simulation_ws/data_set/','3D_conv_try',OBSERVE_SIZE=3,
 #                             Y_TRAIN_SIZE=2,LR_GEN=2e-5,concate=False)
 model_name = '3D_conv_try'
-model = Three_d_conv_model('/home/lab/orel_ws/project/src/simulation_ws/data_set/', model_name)
+model = Three_d_conv_model('/home/orel/project/src/simulation_ws/data_set/', model_name)
 model.create_generator()
 model.create_discriminator()
 model.print_model()
