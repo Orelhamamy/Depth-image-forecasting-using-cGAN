@@ -1,5 +1,5 @@
 clear
-model_name  = 'cGAN_5pic_1y_train_2.1';
+model_name  = '3D_conv_try';
 
 cd '/home/lab/orel_ws/project/model_training/'
 files = strsplit(ls(model_name + "/losses*.mat"),'\n');
@@ -17,7 +17,7 @@ figure(2)
 plot(last.Gen_loss)
 xlabel('Epoch','Interpreter', 'latex'); ylabel('${J_G}$','Interpreter', 'latex')
 set(gcf,'Position', size)
-set(gca,'Xtick', 0:10:150)
+% set(gca,'Xtick', 0:10:150)
 grid on
 
 figure(3)
@@ -30,7 +30,7 @@ figure(4)
 plot(last.Disc_loss)
 xlabel('Epoch','Interpreter', 'latex'); ylabel('${J_{D}}$','Interpreter', 'latex')
 set(gcf,'Position', size)
-set(gca,'Xtick', 0:10:150)
+% set(gca,'Xtick', 0:10:150)
 grid on
 
 figure(5)
@@ -48,7 +48,7 @@ grid on
 
 lr_files = strsplit(ls(model_name + "/lr_rates*.mat"),'\n');
 lr_rates = load(lr_files{end-1});
-lr_rates.title = lr_files{end-1};
+lr_rates.title = strjoin(strsplit(lr_files{end-1},'_'));
 lr_rates_2 = load(lr_files{end-2});
 lr_rates_2.title = lr_files{end-2};
 
