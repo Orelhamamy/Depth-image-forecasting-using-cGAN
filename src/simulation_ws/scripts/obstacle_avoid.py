@@ -8,8 +8,8 @@ import cv2
 import numpy as np
 import rospy
 import copy
-from cv_bridge import CvBridge, CvBridgeError
-from sensor_msgs.msg import Image
+
+from sensor_msgs.msg import CompressedImage
 from geometry_msgs.msg import Twist
 
 
@@ -66,8 +66,5 @@ def main():
         vel_publisher.publish(vel_cmd)
         
 if __name__ =='__main__':
-    try:
-        rospy.init_node('obstacle_avoidance')
-        main()
-    except KeyboardInterrupt:
-        pass
+    rospy.init_node('obstacle_avoidance')
+    main()

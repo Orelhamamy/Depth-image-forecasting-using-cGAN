@@ -3,7 +3,7 @@
 
 import os
 import time
-import cv2
+import cv2 as cv
 import tensorflow as tf
 import numpy as np
 import matplotlib.pyplot as plt
@@ -11,6 +11,7 @@ import matplotlib.gridspec as gridspec
 import datetime
 import copy
 from scipy.io import savemat, loadmat
+from plot_state_and_pre import add_border
 '''
 data_set_path = '/home/lab/orel_ws/project/simulation_ws/data_set/'
 # train_dataset = tf.data.Dataset.list_files(data_set_path + '/*.jpg')
@@ -40,17 +41,17 @@ checkpoint_dir = './traning_checkpoints'
 
 
 class Three_d_conv_model():
-    def __init__(self, data_set_path, model_name,load_model = False, OBSERVE_SIZE = 10,
+    def __init__(self, data_set_path, model_name,load_model = False, OBSERVE_SIZE = 5,
                  Y_TRAIN_SIZE = 1, HEIGHT = 128, WIDTH = 128, ALPHA = 0.2, kernel_size = 3,
                  LAMBDA = 100, LR_GEN = 2e-4, BETA_1_GEN =0.5, BETA_2_GEN =.999, LR_DISC= 2e-4, BETA_1_DISC =0.5, 
                  BETA_2_DISC =.999, prediction_gap = 0, concate = True):
         
-        file_num = lambda x: int(x[x.index('--')+2:x.index('.jpg')])
+        self.file_num = lambda x: int(x[x.index('--')+2:x.index('.jpg')])
         self.initializer = tf.random_normal_initializer(0.,0.02) # Var= 0.02
         self.model_name = model_name
         if not load_model:
             self.OBSERVE_SIZE = OBSERVE_SIZE ; self.Y_TRAIN_SIZE = Y_TRAIN_SIZE
-            self.HEIGHT = HEIGHT; self.WIDTH = WIDTH 
+            self.height = HEIGHT; self.width = WIDTH 
             self.kernel_size = kernel_size; 
             self.ALPHA = ALPHA # Alpha for leakyReLU
             self.LAMBDA = LAMBDA
@@ -69,8 +70,8 @@ class Three_d_conv_model():
         if not self.discriminator_reff:
             print("Reff disctiminator wasn't found. Use fit method to train one")
         
-        self.file_list = [[file, file_num(file)] for file in os.listdir(self.data_set_path) 
-                  if str(file).endswith('.jpg')]
+        self.file_list = [[file, self.file_num(file)] for file in os.listdir(self.data_set_path) 
+                  if file.endswith('.jpg')]
         self.file_list.sort(key = lambda x:x[1])
 
         self.loss_object = tf.keras.losses.BinaryCrossentropy(from_logits = True)
@@ -79,9 +80,10 @@ class Three_d_conv_model():
         self.load_data()
         self.gen_optimizer = tf.keras.optimizers.Adam(self.generator_learning_rate, beta_1 =self.beta[0], beta_2 = self.beta[1])
         self.disc_optimizer = tf.keras.optimizers.Adam(self.discriminator_learning_rate, beta_1= self.beta[2], beta_2 = self.beta[3])
+
         
     def save_pram(self,model_name):
-        dic = {'OBSERVE_SIZE': self.OBSERVE_SIZE,'Y_train_size':self.Y_TRAIN_SIZE, 'Height':self.HEIGHT,'Width':self.WIDTH, 'Alpha':self.ALPHA,
+        dic = {'OBSERVE_SIZE': self.OBSERVE_SIZE,'Y_train_size':self.Y_TRAIN_SIZE, 'Height':self.height,'Width':self.width, 'Alpha':self.ALPHA,
                'Kernel_size': self.kernel_size, 'Lambda':self.LAMBDA, 'Concate': self.concate,
                'Data_set_path': self.data_set_path, 'Learning_rates': self.learning_rates, 'Beta': self.beta,
                'Prediction_gap':self.prediction_gap}
@@ -94,13 +96,13 @@ class Three_d_conv_model():
         mat_fname = '{}/parameters.mat'.format(model_name)
         param_dic = loadmat(mat_fname)
         self.OBSERVE_SIZE = param_dic['OBSERVE_SIZE'][0][0]; self.Y_TRAIN_SIZE = param_dic['Y_train_size'][0][0]
-        self.HEIGHT = param_dic['Height'][0][0]; self.WIDTH = param_dic['Width'][0][0]
+        self.height = param_dic['Height'][0][0]; self.width = param_dic['Width'][0][0]
         self.ALPHA = param_dic['Alpha'][0][0] # Alpha for leakyReLU
-        self.kernel_size = param_dic['Kernel_size'][0][0];
+        self.kernel_size = (np.ones(3,)*param_dic['Kernel_size'][0][0]).astype(np.uint8)
         self.LAMBDA = param_dic['Lambda'][0][0]
         self.concate = param_dic['Concate'][0][0]
-        self.data_set_path = param_dic['Data_set_path'][0]
-        self.learning_rates = param_dic['Learning_rates'][:,0]; self.beta=param_dic['Beta'][0]
+        self.data_set_path = str(param_dic['Data_set_path'][0])
+        self.learning_rates = param_dic['Learning_rates'][:,0].reshape((2,1)); self.beta=param_dic['Beta'][0]
         self.prediction_gap = param_dic['Prediction_gap'][0][0]
         
     def load_reff_disc(self, model_name):
@@ -109,17 +111,19 @@ class Three_d_conv_model():
         except IOError:
             self.discriminator_reff = False     
         
-    def read_img(self, img_name):
-        x = tf.keras.preprocessing.image.load_img(self.data_set_path + img_name, 
+    def read_img(self, img_path):
+        x = tf.keras.preprocessing.image.load_img(img_path, 
                                                   color_mode='grayscale')
         x = tf.keras.preprocessing.image.img_to_array(x)
         x = x/127.5-1 
         return x
     
     def load_data(self):
-        self.train_sequence = self.read_img(self.file_list[0][0])
+        self.train_sequence = self.read_img(self.data_set_path + self.file_list[0][0])
         for img_name in self.file_list[1:]:
-            self.train_sequence = np.concatenate((self.train_sequence , self.read_img(img_name[0])), axis=2)
+            self.train_sequence = np.concatenate((self.train_sequence , 
+                                                  self.read_img(self.data_set_path + img_name[0])),
+                                                 axis=2)
         self.data_set_size = self.train_sequence.shape[2]
     
     def generate_images(self, inx, model = False, training = False, columns = 5, save = False):
@@ -174,12 +178,12 @@ class Three_d_conv_model():
         return result
     
     def create_generator(self):
-        inputs = tf.keras.layers.Input(shape = (self.HEIGHT, self.WIDTH, self.OBSERVE_SIZE, 1))
+        inputs = tf.keras.layers.Input(shape = (self.height, self.width, self.OBSERVE_SIZE, 1))
         downing = [
-            self.downsample(10, self.kernel_size),
-            self.downsample(28, self.kernel_size),
-            self.downsample(36, self.kernel_size),
-            self.downsample(52, self.kernel_size),
+            self.downsample(16, self.kernel_size),
+            self.downsample(32, self.kernel_size),
+            self.downsample(48, self.kernel_size),
+            self.downsample(64, self.kernel_size),
             self.downsample(128, self.kernel_size),
             self.downsample(256, self.kernel_size),
             self.downsample(512, self.kernel_size)
@@ -187,10 +191,10 @@ class Three_d_conv_model():
         upping = [
             self.upsample(256, self.kernel_size, apply_dropout = 0.5),
             self.upsample(128, self.kernel_size, apply_dropout = 0.5),
-            self.upsample(52, self.kernel_size, apply_dropout = 0.5),
-            self.upsample(36, self.kernel_size),
-            self.upsample(28, self.kernel_size),
-            self.upsample(10, self.kernel_size)
+            self.upsample(64, self.kernel_size, apply_dropout = 0.5),
+            self.upsample(48, self.kernel_size),
+            self.upsample(32, self.kernel_size),
+            self.upsample(16, self.kernel_size)
             ]
         last = tf.keras.layers.Conv3DTranspose(1, self.kernel_size, strides = (2,2,1), 
                                                padding= 'same', activation = 'tanh', 
@@ -219,8 +223,8 @@ class Three_d_conv_model():
         
     def create_discriminator(self):
         
-        in_imgs = tf.keras.layers.Input(shape = [self.HEIGHT, self.WIDTH, self.OBSERVE_SIZE, 1], name = 'input_imgs')
-        tar_img = tf.keras.layers.Input(shape = [self.HEIGHT, self.WIDTH, self.OBSERVE_SIZE, 1], name = 'target_imgs')
+        in_imgs = tf.keras.layers.Input(shape = [self.height, self.width, self.OBSERVE_SIZE, 1], name = 'input_imgs')
+        tar_img = tf.keras.layers.Input(shape = [self.height, self.width, self.OBSERVE_SIZE, 1], name = 'target_imgs')
         
         conc = tf.keras.layers.Concatenate(axis = 3)([in_imgs, tar_img])
         
@@ -294,21 +298,30 @@ class Three_d_conv_model():
     def fit(self, epochs, model_name, disc_reff = False):
         self.losses = np.zeros((5,0))
         self.losses_val = np.zeros((4,0))
+        self.learning_rates = np.array(self.learning_rates[:,0]).reshape((2,1))
         if disc_reff:
             self.load_reff_disc(model_name)
-            if not self.discriminator_reff:
+            if self.discriminator_reff: # not
                 print("Unable to load Reff discriminator. Start training one...")
             else:
+                del self.gen_optimizer
+                del self.disc_optimizer
+                del self.generator
+                del self.discriminator
+                self.gen_optimizer = tf.keras.optimizers.Adam(self.generator_learning_rate, beta_1 =self.beta[0], beta_2 = self.beta[1])
+                self.disc_optimizer = tf.keras.optimizers.Adam(self.discriminator_learning_rate, beta_1= self.beta[2], beta_2 = self.beta[3])
                 self.create_generator()
                 self.create_discriminator()
+                
+                
         if not os.path.exists(model_name+'/figs/random'):
             os.makedirs(model_name+'/figs/random')
         with open(model_name +'/read me.txt','a') as f:
-               f.write('\n {} {}, Epochs:{}, Y_train (recursive):{}, Prediction gap:{}.'
+               f.write('\n {} {}, Epochs:{}, Y_train (recursive):{}, Prediction gap:{}, Input&output size: {}.'
                        .format(model_name, datetime.datetime.now().strftime('%Y.%m.%d--%H:%M:%S'), epochs,
-                               self.Y_TRAIN_SIZE, self.prediction_gap))
+                               self.Y_TRAIN_SIZE, self.prediction_gap, self.OBSERVE_SIZE))
                if not self.discriminator_reff:
-                   f.write(', Reff.')
+                   f.write(' Reff training.')
                f.close()
         self.sample_imgs(-1, model_name)
         for epoch in range(epochs):
@@ -375,16 +388,70 @@ class Three_d_conv_model():
     def print_model(self):
         tf.keras.utils.plot_model(self.generator, show_shapes=True, dpi = 96, to_file='{}/Generator.png'.format(self.model_name))
         tf.keras.utils.plot_model(self.discriminator, show_shapes=True, dpi = 96, to_file='{}/Discriminator.png'.format(self.model_name))
-
+    
+    def create_seq_img(self, input_data, target):
+        assert self.generator, "Generator isn't exict, use method create_generator()."
+        gen_output = self.generator(input_data[tf.newaxis,...,tf.newaxis])[0,...,0]
+        input_imgs = []
+        target_imgs = []; gen_imgs = []
+        for i in range(self.OBSERVE_SIZE):
+            input_imgs.append(add_border(input_data[...,i]))
+            target_imgs.append(add_border(target[...,i]))
+            gen_imgs.append(add_border(gen_output[...,i]))
+        height = input_imgs[0].shape[0]
+        input_imgs = np.transpose(input_imgs, (1,2,0)).reshape((height,-1), order = 'F')
+        target_imgs = np.transpose(target_imgs, (1,2,0)).reshape((height,-1), order = 'F')
+        gen_imgs = np.transpose(gen_imgs, (1,2,0)).reshape((height,-1), order = 'F')
+        gen_imgs = np.concatenate((np.ones((height, gen_imgs.shape[1])),gen_imgs), axis = -1)
+        input_imgs = np.concatenate((input_imgs, target_imgs),axis = -1).reshape(input_imgs.shape[0],-1)
+        return np.concatenate((input_imgs, gen_imgs),axis = 0 )
+            
+    def model_validation(self, start_inx = 0, end_inx = -1, test_path = False):
+        if end_inx==-1:
+            end_inx = start_inx+self.OBSERVE_SIZE*5 # default is 5 times the observe size
+        if not test_path:
+            if end_inx>self.data_set_size: end_inx=self.data_set_size
+            test_set = self.train_sequence[:,:,start_inx:end_inx]
+        else:
+            # Create the test_set with the update data path
+            file_list = [[file, self.file_num(file)] for file in os.listdir(test_path) 
+                  if file.endswith('.jpg') and self.file_num(file)>=start_inx and
+                  self.file_num(file)<end_inx] # Generate file list with the range.
+            file_list.sort(key= lambda x:x[1])
+            test_set = self.read_img(test_path + file_list[0][0])
+            self.test = file_list
+            for img_name in file_list[1:]:
+                test_set = np.concatenate((test_set, self.read_img(test_path + img_name[0])), axis=2)
+                     
+        for inx in range(end_inx - 2*self.OBSERVE_SIZE - start_inx-1):
+            input_data = test_set[:,:,inx:inx + self.OBSERVE_SIZE]
+            target = test_set[:,:,inx +self.OBSERVE_SIZE+1:inx +2*self.OBSERVE_SIZE+1]
+            img = self.create_seq_img(input_data, target)
+            normal = np.zeros(img.shape)
+            normal = cv.normalize(img, normal, 0, 1, cv.NORM_MINMAX)
+            self.normal = normal
+            self.img = img
+            cv.imshow('display', normal)
+            cv.waitKey(1)
+            time.sleep(1.25)
+            
+        
+        
 # model = Three_d_conv_model('/home/lab/orel_ws/project/simulation_ws/data_set/','3D_conv_try',OBSERVE_SIZE=3,
 #                             Y_TRAIN_SIZE=2,LR_GEN=2e-5,concate=False)
-model_name = '3D_conv_10_1.0'
-model = Three_d_conv_model('/home/lab/orel_ws/project/src/simulation_ws/data_set/', model_name)
-model.create_generator()
-model.create_discriminator()
-model.print_model()
-model.fit(150, model_name, disc_reff=False)
-model.fit(150, model_name, disc_reff=True)
+# model = Three_d_conv_model('/home/lab/orel_ws/project/src/simulation_ws/data_set/', '3D_conv_10_1.1', load_model=True)
+
+model_name = '3D_conv_5_1.3'
+model = Three_d_conv_model('/home/lab/orel_ws/project/src/simulation_ws/data_set/', 
+                            model_name, OBSERVE_SIZE = 5, load_model = True)
+# model.model_validation(230, 260)
+# model.model_validation()
+# model.create_generator()
+# model.create_discriminator()
+# model.print_model()
+# model.fit(150, model_name, disc_reff=False)
+# model.fit(3, model_name, disc_reff=True)
+model.fit(3, '3D_conv_5_1.3_test', disc_reff=True)
 
 # model = Three_d_conv_model(data_set_path,Y_TRAIN_SIZE=1)
 # model.create_generator()
