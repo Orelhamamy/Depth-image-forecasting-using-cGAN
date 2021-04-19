@@ -1,10 +1,10 @@
 clear
-model_name  = '3D_conv_5_1.3';
+model_name  = 'cGAN_5pic_1y_train_2';
 
 cd '/home/lab/orel_ws/project/model_training/'
 files = strsplit(ls(model_name + "/losses*.mat"),{'\n',' '});
 set(groot,'defaultAxesTickLabelInterpreter','latex');
-last = load(files{end-2},'-mat');
+last = load(files{end-1},'-mat');
 size= [680.0000  697.3465  362.2047  271.6535]
 
 figure(1)
@@ -52,14 +52,14 @@ lr_rates.title = strjoin(strsplit(lr_files{end-1},'_'));
 lr_rates_2 = load(lr_files{end-2});
 lr_rates_2.title = strjoin(strsplit(lr_files{end-2},'_'));
 
-% figure(7)
-% plot(lr_rates.gen_lr)
-% hold on
-% plot(lr_rates.disc_lr)
-% legend('Gen LR','Disc LR'); grid on; title(lr_rates.title);
-% set(gcf,'Position', size)
-% xlabel('Epoch','Interpreter', 'latex'); ylabel('Learning rate','Interpreter', 'latex')
-% hold off
+figure(7)
+plot(lr_rates.gen_lr)
+hold on
+plot(lr_rates.disc_lr)
+legend('Gen LR','Disc LR'); grid on; title(lr_rates.title);
+set(gcf,'Position', size)
+xlabel('Epoch','Interpreter', 'latex'); ylabel('Learning rate','Interpreter', 'latex')
+hold off
 
 
 

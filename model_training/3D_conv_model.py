@@ -71,7 +71,7 @@ class Three_d_conv_model():
             print("Reff disctiminator wasn't found. Use fit method to train one")
         
         self.file_list = [[file, self.file_num(file)] for file in os.listdir(self.data_set_path) 
-                  if file.endswith('.jpg')]
+                  if file.endswith('.jpg') and self.file_num(file)%10==0] # For armadillo data set]
         self.file_list.sort(key = lambda x:x[1])
 
         self.loss_object = tf.keras.losses.BinaryCrossentropy(from_logits = True)
@@ -413,11 +413,15 @@ class Three_d_conv_model():
             if end_inx>self.data_set_size: end_inx=self.data_set_size
             test_set = self.train_sequence[:,:,start_inx:end_inx]
         else:
+            gap = 1
+            # if 'armadillo' in self.data_set_path:
+            #     start_inx *=10; end_inx *=10; gap = 10 # For armadillo data-set
             # Create the test_set with the update data path
             file_list = [[file, self.file_num(file)] for file in os.listdir(test_path) 
                   if file.endswith('.jpg') and self.file_num(file)>=start_inx and
-                  self.file_num(file)<end_inx] # Generate file list with the range.
+                  self.file_num(file)<end_inx and self.file_num(file)%gap==0] # - Armadillo Generate file list with the range.
             file_list.sort(key= lambda x:x[1])
+            
             test_set = self.read_img(test_path + file_list[0][0])
             self.test = file_list
             for img_name in file_list[1:]:
@@ -426,14 +430,20 @@ class Three_d_conv_model():
         for inx in range(end_inx - 2*self.OBSERVE_SIZE - start_inx-1):
             input_data = test_set[:,:,inx:inx + self.OBSERVE_SIZE]
             target = test_set[:,:,inx +self.OBSERVE_SIZE+1:inx +2*self.OBSERVE_SIZE+1]
+            if target.shape[2]<5:
+                break
             img = self.create_seq_img(input_data, target)
             normal = np.zeros(img.shape)
             normal = cv.normalize(img, normal, 0, 1, cv.NORM_MINMAX)
             self.normal = normal
             self.img = img
             cv.imshow('display', normal)
-            cv.waitKey(1)
-            time.sleep(1.25)
+            k = cv.waitKey(1)
+            if k ==27 or k== ord('q'): 
+                break
+            elif k==ord('s'):
+                time.sleep(3.)
+            time.sleep(1.)
             
         
         
@@ -442,21 +452,18 @@ class Three_d_conv_model():
 # model = Three_d_conv_model('/home/lab/orel_ws/project/src/simulation_ws/data_set/', '3D_conv_10_1.1', load_model=True)
 
 model_name = '3D_conv_5_1.3'
-model = Three_d_conv_model('/home/lab/orel_ws/project/src/simulation_ws/data_set/', 
+model = Three_d_conv_model('/home/lab/orel_ws/project/data_set_armadillo/3/', 
                             model_name, OBSERVE_SIZE = 5, load_model = True)
-# model.model_validation(230, 260)
+# Test for 1.3 
+model.model_validation(230,300, test_path='/home/lab/orel_ws/project/data_set/test/')
 # model.model_validation()
 # model.create_generator()
 # model.create_discriminator()
 # model.print_model()
 # model.fit(150, model_name, disc_reff=False)
-# model.fit(3, model_name, disc_reff=True)
-model.fit(3, '3D_conv_5_1.3_test', disc_reff=True)
-
-# model = Three_d_conv_model(data_set_path,Y_TRAIN_SIZE=1)
-# model.create_generator()
-# model.create_discriminator()
-# model.generate_images(1,model = True)
+# model.fit(150, model_name, disc_reff=True)
+# Test for 1.4
+#model.model_validation(150,250,test_path='/home/lab/orel_ws/project/data_set_armadillo/2/') 
 
 
 

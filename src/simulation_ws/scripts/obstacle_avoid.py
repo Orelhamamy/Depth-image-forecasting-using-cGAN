@@ -16,11 +16,21 @@ from geometry_msgs.msg import Twist
 #from scipy.io import savemat
 #import datetime
 
-INTERVAL = 0.25
 HEIGHT, WIDTH = 128, 128 
 depth_camera = '/depth_camera/depth/image_raw'
 model_path ='/home/lab/orel_ws/project/model_training/' + 'cGAN_5pic_1y_train_1.9'
 vel_cmd = Twist()
+
+def parser():
+    parser = argparse.ArgumentParser()
+    parser.add_argument("--input_topic", default= "/depth_camera/depth/image_raw/Compressed",
+                        help= "The listen topic by the model.")
+    parser.add_argument("--model_name", default= "cGAN_5pic_1y_train_1.9",
+                            help="The name of the loaded model.")
+    parser.add_argument("--model_path", default="/home/lab/orel_ws/project/model_training/",
+                            help="The model dirctory..")
+    return parser.parse_args()
+
 
 class image_buffer():
     # Save image as input size
@@ -41,7 +51,7 @@ def vel_callback(msg):
     global vel_cmd
     vel_cmd = msg
     
-def main():
+def main(args):
     global vel_cmd
     generator = tf.keras.models.load_model('{}/generator_0'.format(model_path))
     bridge = CvBridge()
@@ -67,4 +77,4 @@ def main():
         
 if __name__ =='__main__':
     rospy.init_node('obstacle_avoidance')
-    main()
+    main(parser())

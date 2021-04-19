@@ -3,7 +3,7 @@
 <launch>
 
 <include file="$(find gazebo_demo)/launch/empty_world.launch" >
-  <arg name="world_name" value="$(find gazebo_demo)/worlds/model.world"/>
+  <arg name="world_name" value="/home/lab/orel_ws/project/src/gazebo_demo/worlds/model_obstacles.world"/>
 </include>
 
 </launch>

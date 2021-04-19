@@ -28,8 +28,6 @@ def parser():
     return parser.parse_args()
 
 
-
-
 class imgs_buffer():
     def __init__(self, topic, interval, shape):
         self.bridge = CvBridge()
@@ -61,8 +59,6 @@ class imgs_buffer():
         return img
 
 
-
-
 def main(args):
     assert args.publish_topic.endswith("Compressed"), "The publish topic must end with 'Compressed'"
     publisher = rospy.Publisher(args.publish_topic, CompressedImage, queue_size= 1)
@@ -71,6 +67,7 @@ def main(args):
         if (seq_imgs.data.shape[-1]==args.observe_size):
             publisher.publish(seq_imgs.compress())
             seq_imgs.rate.sleep()
+
 
 if __name__ =='__main__': 
     rospy.init_node('img_convert')

@@ -1479,6 +1479,58 @@
     </link>
     <static>1</static>
   </model>
+<!-- Obstacles -->
+      < name='unit_sphere'>
+        <pose frame=''>5.55308 2.53783 0.88822 0 -0 0</pose>
+        <scale>1.77644 1.77644 1.77644</scale>
+        <link name='link'>
+          <pose frame=''>5.55308 2.53783 0.88822 0 -0 0</pose>
+          <velocity>0 0 0 0 -0 0</velocity>
+          <acceleration>0 0 0 0 -0 0</acceleration>
+          <wrench>0 0 0 0 -0 0</wrench>
+        </link>
+      </model>
+      <model name='unit_box'>
+        <pose frame=''>-3.7666 6.14206 0.351211 0 -0 0</pose>
+        <scale>1.49014 1 0.702423</scale>
+        <link name='link'>
+          <pose frame=''>-3.7666 6.14206 0.351211 0 -0 0</pose>
+          <velocity>0 0 0 0 -0 0</velocity>
+          <acceleration>0 -0 0 0 -0 0</acceleration>
+          <wrench>0 -0 0 0 -0 0</wrench>
+        </link>
+      </model>
+      <model name='unit_box_0'>
+        <pose frame=''>-5.38644 2.73186 0.776924 2e-06 -2e-06 0.000409</pose>
+        <scale>0.392317 0.508978 1.55385</scale>
+        <link name='link'>
+          <pose frame=''>-5.38644 2.73186 0.776924 2e-06 -2e-06 0.000409</pose>
+          <velocity>0 0 0 0 -0 0</velocity>
+          <acceleration>-1.41961 -1.8433 -2.62104 -0.769045 -1.31439 -3.14159</acceleration>
+          <wrench>-1.41961 -1.8433 -2.62104 0 -0 0</wrench>
+        </link>
+      </model>
+      <model name='unit_cylinder'>
+        <pose frame=''>0.498099 4.19431 0.499992 -1e-06 1e-06 0</pose>
+        <scale>0.763047 0.763047 1</scale>
+        <link name='link'>
+          <pose frame=''>0.498099 4.19431 0.499992 -1e-06 1e-06 0</pose>
+          <velocity>0 0 0 0 -0 0</velocity>
+          <acceleration>0 0 -9.8 0 -0 0</acceleration>
+          <wrench>0 0 -9.8 0 -0 0</wrench>
+        </link>
+      </model>
+      <model name='unit_cylinder_0'>
+        <pose frame=''>-5.29674 -1.84469 1.197 -0 -0 -3.4e-05</pose>
+        <scale>0.535279 0.535279 2.39403</scale>
+        <link name='link'>
+          <pose frame=''>-5.29674 -1.84469 1.197 -0 -0 -3.4e-05</pose>
+          <velocity>0 0 0 0 -0 0</velocity>
+          <acceleration>0 0 -9.8 0 -0 0</acceleration>
+          <wrench>0 0 -9.8 0 -0 0</wrench>
+        </link>
+      </model>
+
 
   </world>
 
