@@ -1,8 +1,7 @@
 /model_training/*/generator/
 /model_training/*/discriminator/
-/model_training/*/generator_0
+/model_training/*/generator_0/
 /model_training/*/discriminator_reff/
-/model_training/**/epoch--???
 /model_training/*/figs
 /model_training/*/figs_reff
 /model_training/*/figs_sigmoid

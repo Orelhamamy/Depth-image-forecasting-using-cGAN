@@ -29,8 +29,8 @@ GAP_PREDICT = 0 # The gap between the last observe and the predict.
 OUTPUT_SIZE = 1
 LAMBDA = 20 # determine the weight of l1 in Loss function (generator) LAMBDA = 0 -> cancel l1_loss
 loss_object  = tf.keras.losses.BinaryCrossentropy(from_logits=True)
-LR_GEN =15e-5; BETA_1_GEN =0.5; BETA_2_GEN =.5
-LR_DISC =2e-4; BETA_1_DISC =0.5; BETA_2_DISC =.5
+LR_GEN =15e-5; BETA_1_GEN =0.5; BETA_2_GEN =.999
+LR_DISC =2e-4; BETA_1_DISC =0.5; BETA_2_DISC =.999
 ITERATION_GEN = 1 ; ITERATION_DISC = 1
 model_name = 'cGAN_5pic_2y_train_2.2'
 data_set_path = '/home/lab/orel_ws/project/data_set_armadillo/3/'

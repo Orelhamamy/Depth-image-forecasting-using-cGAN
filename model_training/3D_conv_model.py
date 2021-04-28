@@ -43,7 +43,7 @@ checkpoint_dir = './traning_checkpoints'
 class Three_d_conv_model():
     def __init__(self, data_set_path, model_name,load_model = False, OBSERVE_SIZE = 5,
                  Y_TRAIN_SIZE = 1, HEIGHT = 128, WIDTH = 128, ALPHA = 0.2, kernel_size = 3,
-                 LAMBDA = 100, LR_GEN = 2e-4, BETA_1_GEN =0.5, BETA_2_GEN =.999, LR_DISC= 2e-4, BETA_1_DISC =0.5, 
+                 LAMBDA = 20, LR_GEN = 15e-5, BETA_1_GEN =0.5, BETA_2_GEN =.999, LR_DISC= 2e-4, BETA_1_DISC =0.5, 
                  BETA_2_DISC =.999, prediction_gap = 0, concate = True):
         
         self.file_num = lambda x: int(x[x.index('--')+2:x.index('.jpg')])
