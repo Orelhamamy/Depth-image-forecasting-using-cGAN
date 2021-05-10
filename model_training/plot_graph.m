@@ -1,5 +1,5 @@
 clear
-model_name  = '3D_conv_5_1.4';
+model_name  = 'cGAN_5pic_2y_train_2.3';
 
 cd '/home/lab/orel_ws/project/model_training/'
 files = strsplit(ls(model_name + "/losses*.mat"),{'\n',' '});
@@ -33,11 +33,11 @@ set(gcf,'Position', size)
 % set(gca,'Xtick', 0:10:150)
 grid on
 
-figure(5)
-plot(smooth(last.Reff_disc_loss,50))
-xlabel('Epoch','Interpreter', 'latex'); ylabel('${J_{D_{reff}}}$','Interpreter', 'latex')
-set(gcf,'Position', size)
-grid on
+% figure(5)
+% plot(smooth(last.Reff_disc_loss,50))
+% xlabel('Epoch','Interpreter', 'latex'); ylabel('${J_{D_{reff}}}$','Interpreter', 'latex')
+% set(gcf,'Position', size)
+% grid on
 
 figure(6)
 plot(last.Reff_disc_loss)
@@ -56,7 +56,7 @@ figure(7)
 plot(lr_rates.gen_lr)
 hold on
 plot(lr_rates.disc_lr)
-legend('Gen LR','Disc LR'); grid on; title(lr_rates.title);
+legend('Gen LR','Disc LR'); grid on; %title(lr_rates.title);
 set(gcf,'Position', size)
 xlabel('Epoch','Interpreter', 'latex'); ylabel('Learning rate','Interpreter', 'latex')
 hold off

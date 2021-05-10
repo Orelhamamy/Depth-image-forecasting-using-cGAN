@@ -360,11 +360,8 @@ def fit(train_sequence, epochs = EPOCHS, step = 0, model_name= 'generic_model'):
                     train_step(input_seq, train_sequence[:,:,img_inx+OBSERVE_SIZE+rec+GAP_PREDICT+1], 
                                 epoch, step)
                     gen_img = generator(input_seq[tf.newaxis,...])     
-                    temp = copy.copy(input_seq)
                     input_seq = tf.concat([input_seq, gen_img[0]], axis=-1)
                     input_seq = input_seq[:,:,1:]
-                    if np.array_equal(temp,input_seq):
-                        print('Not good')
                     
             if discriminator_reff: 
                 input_seq = train_sequence[:,:,img_inx:img_inx+OBSERVE_SIZE]
