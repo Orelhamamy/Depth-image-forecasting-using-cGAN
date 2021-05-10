@@ -32,8 +32,9 @@ loss_object  = tf.keras.losses.BinaryCrossentropy(from_logits=True)
 LR_GEN =15e-5; BETA_1_GEN =0.5; BETA_2_GEN =.999
 LR_DISC =2e-4; BETA_1_DISC =0.5; BETA_2_DISC =.999
 ITERATION_GEN = 1 ; ITERATION_DISC = 1
-model_name = 'cGAN_5pic_2y_train_2.2'
-data_set_path = '/home/lab/orel_ws/project/data_set_armadillo/3/'
+model_name = 'cGAN_rec_test'
+# data_set_path = '/home/lab/orel_ws/project/data_set_armadillo/3/'
+data_set_path = '/home/lab/orel_ws/project/src/simulation_ws/data_set/'
 losses_val = np.zeros((4,0))
 losses_avg = np.zeros((5,0)) # [Gen_total_loss, Gen_loss, Gen_l1_loss, Disc_loss, Reff_disc_loss]
 learning_rates = np.array([[LR_GEN],[LR_DISC]])
@@ -66,9 +67,10 @@ def read_img(img_name, data_set_path):
     
 def load_data(data_set_path = '/home/lab/orel_ws/project/src/simulation_ws/data_set/'):
     file_num = lambda x: int(x[x.index('--')+2:x.index('.jpg')])
-
+    gap = 1
+    if 'armadillo' in data_set_path: gap = 10 # For armadillo data set
     file_list = [[file, file_num(file)] for file in os.listdir(data_set_path)
-             if file.endswith('.jpg') and file_num(file)%10==0] # For armadillo data set
+             if file.endswith('.jpg') and file_num(file)%gap==0] 
     file_list.sort(key = lambda x:x[1])
     train_sequence =read_img(file_list[0][0], data_set_path) 
     for img_name in file_list[1:]:
@@ -358,8 +360,11 @@ def fit(train_sequence, epochs = EPOCHS, step = 0, model_name= 'generic_model'):
                     train_step(input_seq, train_sequence[:,:,img_inx+OBSERVE_SIZE+rec+GAP_PREDICT+1], 
                                 epoch, step)
                     gen_img = generator(input_seq[tf.newaxis,...])     
+                    temp = copy.copy(input_seq)
                     input_seq = tf.concat([input_seq, gen_img[0]], axis=-1)
                     input_seq = input_seq[:,:,1:]
+                    if np.array_equal(temp,input_seq):
+                        print('Not good')
                     
             if discriminator_reff: 
                 input_seq = train_sequence[:,:,img_inx:img_inx+OBSERVE_SIZE]
@@ -418,7 +423,7 @@ if __name__ =='__main__':
         discriminator_reff = False
     
     tf.keras.utils.plot_model(discriminator, show_shapes = True,
-                              dpi = 96, to_file = model_name + '/Discriminator.png')  
+                              dpi = 96, to_file = model_name + '/Discriminator.png') 
     fit(train_sequence, epochs= 150, model_name=model_name)
     if not discriminator_reff: # if not discriminator_reff:
         generator.save(model_name+'/generator_0')

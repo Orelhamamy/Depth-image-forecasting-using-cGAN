@@ -2,11 +2,11 @@
 # -*- coding: utf-8 -*-
 
 import os
-import time
 import tensorflow as tf
 import matplotlib.pyplot as plt
 import numpy as np
 from model_train_base import load_data
+from three_d_conv_model import Three_d_conv_model
 #from scipy.io import savemat
 #import datetime
 
@@ -27,11 +27,10 @@ def generate_image(imgs, input_size, save =False):
     else:
         plt.savefig(save)
 
-if __name__ =='__main__':
-    
-    model_name = 'cGAN_5pic_1y_train_1.0'
+def plot_2D():
+    model_name = '--'
     output_layers = [1, 2, 3]
-    data = load_data()
+    data = load_data(data_set_path = '/home/lab/orel_ws/project/data_set/test/')
     inx = 10
     
     try: 
@@ -55,20 +54,32 @@ if __name__ =='__main__':
         plt.show()
     plt.figure()
     generate_image(data[:,:,inx:inx+input_size], input_size)
-'''
-square = 8
-for fmap in feature_maps:
-	# plot all 64 maps in an 8x8 squares
-	ix = 1
-	for _ in range(square):
-		for _ in range(square):
-			# specify subplot and turn of axis
-			ax = pyplot.subplot(square, square, ix)
-			ax.set_xticks([])
-			ax.set_yticks([])
-			# plot filter channel in grayscale
-			pyplot.imshow(fmap[0, :, :, ix-1], cmap='gray')
-			ix += 1
-	# show the figure
-	pyplot.show()
-'''
+
+
+def plot_3D_conv():
+    model = Three_d_conv_model(data_set_path = '/home/lab/orel_ws/project/data_set/test/', 
+                               model_name = '3D_conv_5_1.3', load_model = True)
+    output_layers = [1, 2, 3, 4]
+    inx = 366
+    outputs = [model.generator.layers[i].output for i in output_layers]
+    visual_gen = tf.keras.models.Model(inputs = model.generator.inputs, outputs = outputs)
+    f_maps = visual_gen.predict(model.train_sequence[tf.newaxis, :,:,inx:inx+model.OBSERVE_SIZE, tf.newaxis])
+    row = model.OBSERVE_SIZE
+    for feature_map in f_maps:
+        col = feature_map.shape[-1]
+        ix = 1
+        plt.figure()
+        for j in range(col): # columns
+            for i in range(row): # rows
+                ax = plt.subplot2grid((row, col),(i,j))
+                ax.axis('off')
+                plt.imshow(feature_map[0,:,:,i,j], cmap= 'gray')
+                ix += 1
+        plt.show()
+    plt.figure()
+    model.generate_images(inx, model.generator, save = False)
+
+    
+if __name__ =='__main__':
+    plot_3D_conv()
+    

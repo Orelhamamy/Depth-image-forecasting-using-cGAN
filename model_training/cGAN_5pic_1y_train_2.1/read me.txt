@@ -1,0 +1,2 @@
+
+cGAN_5pic_1y_train_2.12021.04.29--11:47:55 Epochs:150 Y_train is:1 Prediction gap:2
