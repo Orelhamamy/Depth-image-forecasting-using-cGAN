@@ -5,19 +5,27 @@
 from matplotlib import pyplot as plt, image as mpimg
 import tensorflow as tf
 import numpy as np
-from model_train_base import load_data, generate_image, GAP_PREDICT
+from model_train_base import load_data, generate_image
 import os
 from scipy.io import savemat, loadmat
 
 
 #data_set_path = '/home/lab/orel_ws/project/data_set/test/'
-model_name = 'cGAN_5pic_1y_train_2.1'
+model_name = 'cGAN_5pic_1y_train_2'
 observe_size = 20
-img_seq = load_data(data_set_path = '/home/lab/orel_ws/project/data_set_armadillo/2/')        
+img_seq = load_data(data_set_path = '/home/lab/orel_ws/project/data_set/test/')        
 generator = tf.keras.models.load_model('{}/generator_0'.format(model_name))
 input_size = generator.input.shape[3]
-
-
+def read_prediction():
+    file_path = '{}/read me.txt'.format(model_name)
+    with open(file_path, 'r') as f:
+        for line in f:
+            if 'Prediction gap' in line:
+                inx = line.index('Prediction gap')+ len('Prediction gap')+1
+                return int(line[inx])
+    return -1
+GAP_PREDICT = read_prediction()
+assert GAP_PREDICT!=-1, "Prediction gap not found in 'read me' file."
 
 def add_border(img , border_size = 1, intense = 1):
     img_size = img.shape
@@ -28,29 +36,33 @@ def add_border(img , border_size = 1, intense = 1):
 if __name__ == '__main__':
     start_inx = tf.random.uniform([1],0,img_seq.shape[2]-GAP_PREDICT-observe_size, dtype = tf.dtypes.int32).numpy()[0]
     # start_inx = 183
+    # strat_inx = 263
     
     x_real = add_border(img_seq[...,start_inx])
     img_shape = x_real.shape
     x_predict = np.ones(img_shape)
     x_predict_2 = np.ones(img_shape)
+    gen_img = 0 # For cancel a error.
     
     for i in range(1,observe_size):
         x_real = np.concatenate((x_real, add_border(img_seq[...,start_inx+i])), axis = 1)
         x_predict = np.concatenate((x_predict, np.ones(img_shape)), axis = 1)
         x_predict_2 = np.concatenate((x_predict_2, np.ones(img_shape)), axis = 1)
         if i>=input_size+1 and GAP_PREDICT==0:
-            rec_img = np.concatenate((img_seq[...,start_inx+i-input_size-GAP_PREDICT:start_inx+i-1-GAP_PREDICT],gen_img[...,tf.newaxis]), axis = 2)
+            rec_img = np.concatenate((img_seq[...,start_inx+i-input_size:start_inx+i-1],gen_img[...,tf.newaxis]), axis = 2)
             gen_img_2 = generator(rec_img[tf.newaxis,...], training = False)[0,...,0]
             x_predict_2[:,img_shape[1]*i:(img_shape[1]*(i+1))] = add_border(gen_img_2)
             gen_img = generator(img_seq[tf.newaxis,:,:,start_inx+i-input_size:start_inx+i], training = False)[0,...,0]
             x_predict[:,img_shape[1]*i:(img_shape[1]*(i+1))] = add_border(gen_img)
+            # print(np.sum(gen_img-gen_img_2))
         elif i>=input_size + GAP_PREDICT:
             gen_img = generator(img_seq[tf.newaxis,:,:,start_inx+i-input_size-GAP_PREDICT:start_inx+i-GAP_PREDICT], training = False)[0,...,0]
             x_predict[:,img_shape[1]*i:(img_shape[1]*(i+1))] = add_border(gen_img)
     plt.figure()
     full_img = np.concatenate((x_real,x_predict,x_predict_2),axis = 0)
+    if GAP_PREDICT!=0: full_img = full_img[:img_shape[0]*2,:]
     # full_img = np.concatenate((x_real,x_predict),axis = 0)
     plt.imshow(full_img, cmap = 'gray',vmin= -1, vmax = 1)
     plt.axis('off')
     
-    mpimg.imsave('{}/test_sample_0-{}.png'.format(model_name, start_inx+1), full_img, cmap = 'gray')
+    mpimg.imsave('{}/test_sample-{}.png'.format(model_name, start_inx+1), full_img, cmap = 'gray')

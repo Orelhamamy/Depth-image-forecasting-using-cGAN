@@ -1,0 +1,4 @@
+
+ 3D_conv_5_1.4 2021.04.30--21:17:41, Epochs:150, Y_train (recursive):1, Prediction gap:0, Input&output size: 5. Reff training.
+ 3D_conv_5_1.4 2021.05.01--00:04:02, Epochs:150, Y_train (recursive):1, Prediction gap:0, Input&output size: 5.
+ 3D_conv_5_1.4 2021.05.04--13:25:46, Epochs:150, Y_train (recursive):1, Prediction gap:0, Input&output size: 5.

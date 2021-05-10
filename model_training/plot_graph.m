@@ -1,5 +1,5 @@
 clear
-model_name  = 'cGAN_5pic_1y_train_2';
+model_name  = '3D_conv_5_1.4';
 
 cd '/home/lab/orel_ws/project/model_training/'
 files = strsplit(ls(model_name + "/losses*.mat"),{'\n',' '});
@@ -49,8 +49,8 @@ grid on
 lr_files = strsplit(ls(model_name + "/lr_rates*.mat"),{'\n', ' '});
 lr_rates = load(lr_files{end-1});
 lr_rates.title = strjoin(strsplit(lr_files{end-1},'_'));
-lr_rates_2 = load(lr_files{end-2});
-lr_rates_2.title = strjoin(strsplit(lr_files{end-2},'_'));
+% lr_rates_2 = load(lr_files{end-2});
+% lr_rates_2.title = strjoin(strsplit(lr_files{end-2},'_'));
 
 figure(7)
 plot(lr_rates.gen_lr)
@@ -63,11 +63,11 @@ hold off
 
 
 
-figure(8)
-plot(lr_rates_2.gen_lr)
-hold on
-plot(lr_rates_2.disc_lr)
-legend('Gen LR','Disc LR'); grid on; title(lr_rates_2.title);
-set(gcf,'Position', size)
-xlabel('Epoch','Interpreter', 'latex'); ylabel('Learning rate','Interpreter', 'latex')
-hold off
+% figure(8)
+% plot(lr_rates_2.gen_lr)
+% hold on
+% plot(lr_rates_2.disc_lr)
+% legend('Gen LR','Disc LR'); grid on; title(lr_rates_2.title);
+% set(gcf,'Position', size)
+% xlabel('Epoch','Interpreter', 'latex'); ylabel('Learning rate','Interpreter', 'latex')
+% hold off

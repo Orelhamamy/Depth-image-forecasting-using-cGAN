@@ -1,0 +1,4 @@
+
+cGAN_5pic_2y_train_2.22021.04.28--16:01:58 Epochs:150 Y_train is:2 Prediction gap:0, Reff
+cGAN_5pic_2y_train_2.22021.04.28--16:05:33 Epochs:150 Y_train is:2 Prediction gap:0
+cGAN_5pic_2y_train_2.22021.04.28--16:06:49 Epochs:150 Y_train is:2 Prediction gap:0

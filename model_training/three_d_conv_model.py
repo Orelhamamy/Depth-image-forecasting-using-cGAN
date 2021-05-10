@@ -7,7 +7,6 @@ import cv2 as cv
 import tensorflow as tf
 import numpy as np
 import matplotlib.pyplot as plt
-import matplotlib.gridspec as gridspec
 import datetime
 import copy
 from scipy.io import savemat, loadmat
@@ -41,7 +40,7 @@ checkpoint_dir = './traning_checkpoints'
 
 
 class Three_d_conv_model():
-    def __init__(self, data_set_path, model_name,load_model = False, OBSERVE_SIZE = 5,
+    def __init__(self, model_name, data_set_path ='', load_model = False, OBSERVE_SIZE = 5,
                  Y_TRAIN_SIZE = 1, HEIGHT = 128, WIDTH = 128, ALPHA = 0.2, kernel_size = 3,
                  LAMBDA = 20, LR_GEN = 15e-5, BETA_1_GEN =0.5, BETA_2_GEN =.999, LR_DISC= 2e-4, BETA_1_DISC =0.5, 
                  BETA_2_DISC =.999, prediction_gap = 0, concate = True):
@@ -63,15 +62,23 @@ class Three_d_conv_model():
             self.save_pram(model_name)
         
         else:
-            self.generator = tf.keras.models.load_model(model_name + '/generator')
-            self.discriminator = tf.keras.models.load_model(model_name + '/discriminator')
             self.load_parm(model_name)
+            if data_set_path!='': self.data_set_path = data_set_path
+            try:
+                self.generator = tf.keras.models.load_model(model_name + '/generator')
+                self.discriminator = tf.keras.models.load_model(model_name + '/discriminator')
+            except OSError:
+                print("Generator and discriminator didn't found, and will initialize.")
+                self.generator = self.create_generator()
+                self.discriminator = self.create_discriminator()
+            
         self.load_reff_disc(model_name)
         if not self.discriminator_reff:
             print("Reff disctiminator wasn't found. Use fit method to train one")
-        
+        gap = 1
+        if 'armadillo' in self.data_set_path: gap = 10  
         self.file_list = [[file, self.file_num(file)] for file in os.listdir(self.data_set_path) 
-                  if file.endswith('.jpg') and self.file_num(file)%10==0] # For armadillo data set]
+                  if file.endswith('.jpg') and self.file_num(file)%gap==0] # For armadillo data set]
         self.file_list.sort(key = lambda x:x[1])
 
         self.loss_object = tf.keras.losses.BinaryCrossentropy(from_logits = True)
@@ -80,8 +87,7 @@ class Three_d_conv_model():
         self.load_data()
         self.gen_optimizer = tf.keras.optimizers.Adam(self.generator_learning_rate, beta_1 =self.beta[0], beta_2 = self.beta[1])
         self.disc_optimizer = tf.keras.optimizers.Adam(self.discriminator_learning_rate, beta_1= self.beta[2], beta_2 = self.beta[3])
-
-        
+   
     def save_pram(self,model_name):
         dic = {'OBSERVE_SIZE': self.OBSERVE_SIZE,'Y_train_size':self.Y_TRAIN_SIZE, 'Height':self.height,'Width':self.width, 'Alpha':self.ALPHA,
                'Kernel_size': self.kernel_size, 'Lambda':self.LAMBDA, 'Concate': self.concate,
@@ -132,16 +138,16 @@ class Three_d_conv_model():
         prediction = self.generator(self.train_sequence[tf.newaxis,:,:,inx:inx + self.OBSERVE_SIZE, tf.newaxis], training= training)[0,...,0]
         for i in range(self.OBSERVE_SIZE):
             axs = plt.subplot(rows, columns, i+1)
-            axs.imshow(self.train_sequence[...,inx+i], cmap = 'gray')
+            axs.imshow(self.train_sequence[...,inx+i], cmap = 'gray', vmin = -1, vmax = 1)
             # plt.title(i+1)
             plt.axis('off')
             plt.subplot(rows, columns, columns + i+1)
-            plt.imshow(self.train_sequence[...,inx+self.OBSERVE_SIZE+i+1], cmap = 'gray')
+            plt.imshow(self.train_sequence[...,inx+self.OBSERVE_SIZE+i+1], cmap = 'gray', vmin = -1, vmax = 1)
             # plt.title('Output {}'.format(str(i)))
             plt.axis('off')
             if model:
                 plt.subplot(rows, columns, 2*columns + i+1)
-                plt.imshow(prediction[:,:,i], cmap = 'gray')
+                plt.imshow(prediction[:,:,i], cmap = 'gray', vmin = -1, vmax = 1)
                 plt.axis('off')
                 # plt.title('Predict')
         plt.subplot(rows, columns, 1)
@@ -301,18 +307,20 @@ class Three_d_conv_model():
         self.learning_rates = np.array(self.learning_rates[:,0]).reshape((2,1))
         if disc_reff:
             self.load_reff_disc(model_name)
-            if self.discriminator_reff: # not
+            if not self.discriminator_reff: # not
                 print("Unable to load Reff discriminator. Start training one...")
             else:
                 del self.gen_optimizer
                 del self.disc_optimizer
-                del self.generator
-                del self.discriminator
+                try:
+                    del self.generator
+                    del self.discriminator
+                except AttributeError:
+                    pass
                 self.gen_optimizer = tf.keras.optimizers.Adam(self.generator_learning_rate, beta_1 =self.beta[0], beta_2 = self.beta[1])
                 self.disc_optimizer = tf.keras.optimizers.Adam(self.discriminator_learning_rate, beta_1= self.beta[2], beta_2 = self.beta[3])
                 self.create_generator()
                 self.create_discriminator()
-                
                 
         if not os.path.exists(model_name+'/figs/random'):
             os.makedirs(model_name+'/figs/random')
@@ -347,8 +355,8 @@ class Three_d_conv_model():
                                                              target[tf.newaxis,...,tf.newaxis]])
                         reff_loss = self.discriminator_loss(disc_gen.numpy(), disc_real.numpy())
                         reff_loss_avg += reff_loss/(self.data_set_size-2*self.OBSERVE_SIZE-self.prediction_gap)
-                    input_seq = tf.concat([input_seq, gen_img[0,...,0]], axis = 2)
-                    input_seq = input_seq[:,:,1:]
+                    # input_seq = tf.concat([input_seq, gen_img[0,...,0]], axis = 2)
+                    # input_seq = input_seq[:,:,1:]
                 print('.', end = '')
                 if (img_inx+1)%100==0:
                     print('\n')
@@ -390,7 +398,8 @@ class Three_d_conv_model():
         tf.keras.utils.plot_model(self.discriminator, show_shapes=True, dpi = 96, to_file='{}/Discriminator.png'.format(self.model_name))
     
     def create_seq_img(self, input_data, target):
-        assert self.generator, "Generator isn't exict, use method create_generator()."
+        assert self.generator, "Generator isn't exict, use method create_generator() \
+                                and train it, or use trained model."
         gen_output = self.generator(input_data[tf.newaxis,...,tf.newaxis])[0,...,0]
         input_imgs = []
         target_imgs = []; gen_imgs = []
@@ -414,8 +423,8 @@ class Three_d_conv_model():
             test_set = self.train_sequence[:,:,start_inx:end_inx]
         else:
             gap = 1
-            # if 'armadillo' in self.data_set_path:
-            #     start_inx *=10; end_inx *=10; gap = 10 # For armadillo data-set
+            if 'armadillo' in self.data_set_path:
+                start_inx *=10; end_inx *=10; gap = 10 # For armadillo data-set
             # Create the test_set with the update data path
             file_list = [[file, self.file_num(file)] for file in os.listdir(test_path) 
                   if file.endswith('.jpg') and self.file_num(file)>=start_inx and
@@ -429,41 +438,45 @@ class Three_d_conv_model():
                      
         for inx in range(end_inx - 2*self.OBSERVE_SIZE - start_inx-1):
             input_data = test_set[:,:,inx:inx + self.OBSERVE_SIZE]
-            target = test_set[:,:,inx +self.OBSERVE_SIZE+1:inx +2*self.OBSERVE_SIZE+1]
+            target = test_set[:,:,inx +self.OBSERVE_SIZE:inx +2*self.OBSERVE_SIZE]
             if target.shape[2]<5:
                 break
             img = self.create_seq_img(input_data, target)
             normal = np.zeros(img.shape)
             normal = cv.normalize(img, normal, 0, 1, cv.NORM_MINMAX)
             self.normal = normal
-            self.img = img
+            
+            # self.img = img
             cv.imshow('display', normal)
             k = cv.waitKey(1)
             if k ==27 or k== ord('q'): 
                 break
-            elif k==ord('s'):
+            elif k==ord('a'):
                 time.sleep(3.)
+            elif k==ord('s'):
+                cv.imwrite("sample-{} model-{}.png".format(str(inx), self.model_name), np.array(normal*255,dtype='uint8'))                
             time.sleep(1.)
             
         
-        
-# model = Three_d_conv_model('/home/lab/orel_ws/project/simulation_ws/data_set/','3D_conv_try',OBSERVE_SIZE=3,
-#                             Y_TRAIN_SIZE=2,LR_GEN=2e-5,concate=False)
-# model = Three_d_conv_model('/home/lab/orel_ws/project/src/simulation_ws/data_set/', '3D_conv_10_1.1', load_model=True)
+if __name__ == '__main__':     
+    model_name = '3D_conv_5_1.3'
+    model = Three_d_conv_model('/home/lab/orel_ws/project/src/simulation_ws/data_set/',
+                            model_name, load_model=True)
 
-model_name = '3D_conv_5_1.3'
-model = Three_d_conv_model('/home/lab/orel_ws/project/data_set_armadillo/3/', 
-                            model_name, OBSERVE_SIZE = 5, load_model = True)
-# Test for 1.3 
-model.model_validation(230,300, test_path='/home/lab/orel_ws/project/data_set/test/')
-# model.model_validation()
-# model.create_generator()
-# model.create_discriminator()
-# model.print_model()
-# model.fit(150, model_name, disc_reff=False)
-# model.fit(150, model_name, disc_reff=True)
-# Test for 1.4
-#model.model_validation(150,250,test_path='/home/lab/orel_ws/project/data_set_armadillo/2/') 
+
+    # model = Three_d_conv_model('/home/lab/orel_ws/project/data_set_armadillo/3/', 
+    #                             model_name, OBSERVE_SIZE = 5, load_model = False)
+    
+    # model.model_validation()
+    
+    # model.print_model()
+    # model.fit(150, model_name, disc_reff=False)
+    model.fit(150, model_name, disc_reff=True)
+    # Test for 1.3 
+    # model.model_validation(210,360, test_path='/home/lab/orel_ws/project/data_set/test/')
+    
+    # Test for 1.4
+    # model.model_validation(75,350,test_path='/home/lab/orel_ws/project/data_set_armadillo/2/') 
 
 
 
