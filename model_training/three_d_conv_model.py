@@ -3,7 +3,7 @@
 
 import os
 import time
-import cv2 as cv
+import cv2
 import tensorflow as tf
 import numpy as np
 import matplotlib.pyplot as plt
@@ -415,7 +415,7 @@ class Three_d_conv_model():
         input_imgs = np.concatenate((input_imgs, target_imgs),axis = -1).reshape(input_imgs.shape[0],-1)
         return np.concatenate((input_imgs, gen_imgs),axis = 0 )
             
-    def model_validation(self, start_inx = 0, end_inx = -1, test_path = False):
+    def model_validation(self, start_inx = 0, end_inx = -1, test_path = False, rate_hz = 4):
         if end_inx==-1:
             end_inx = start_inx+self.OBSERVE_SIZE*5 # default is 5 times the observe size
         if not test_path:
@@ -443,25 +443,25 @@ class Three_d_conv_model():
                 break
             img = self.create_seq_img(input_data, target)
             normal = np.zeros(img.shape)
-            normal = cv.normalize(img, normal, 0, 1, cv.NORM_MINMAX)
+            normal = cv2.normalize(img, normal, 0, 1, cv2.NORM_MINMAX)
             self.normal = normal
             
             # self.img = img
-            cv.imshow('display', normal)
-            k = cv.waitKey(1)
+            cv2.imshow('display', normal)
+            k = cv2.waitKey(1)
             if k ==27 or k== ord('q'): 
                 break
             elif k==ord('a'):
                 time.sleep(3.)
             elif k==ord('s'):
-                cv.imwrite("sample-{} model-{}.png".format(str(inx), self.model_name), np.array(normal*255,dtype='uint8'))                
-            time.sleep(1.)
+                cv2.imwrite("{}/sample-{} model-{}.png".format(self.model_name, str(inx), self.model_name), np.array(normal*255,dtype='uint8'))                
+            time.sleep(1/rate_hz)
             
         
 if __name__ == '__main__':     
     model_name = '3D_conv_5_1.3'
-    model = Three_d_conv_model('/home/lab/orel_ws/project/src/simulation_ws/data_set/',
-                            model_name, load_model=True)
+    model = Three_d_conv_model(model_name,'/home/lab/orel_ws/project/src/simulation_ws/data_set/',
+                            load_model=True)
 
 
     # model = Three_d_conv_model('/home/lab/orel_ws/project/data_set_armadillo/3/', 
@@ -471,9 +471,9 @@ if __name__ == '__main__':
     
     # model.print_model()
     # model.fit(150, model_name, disc_reff=False)
-    model.fit(150, model_name, disc_reff=True)
+    # model.fit(150, model_name, disc_reff=True)
     # Test for 1.3 
-    # model.model_validation(210,360, test_path='/home/lab/orel_ws/project/data_set/test/')
+    model.model_validation(100,360, test_path='/home/lab/orel_ws/project/data_set/test/')
     
     # Test for 1.4
     # model.model_validation(75,350,test_path='/home/lab/orel_ws/project/data_set_armadillo/2/') 

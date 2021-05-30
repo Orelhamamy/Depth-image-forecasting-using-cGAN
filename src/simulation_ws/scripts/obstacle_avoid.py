@@ -63,7 +63,7 @@ def main(args):
     global vel_cmd
     model_path = args.model_path + args.model_name
     generator = tf.keras.models.load_model('{}/generator_0'.format(model_path))
-    input_shape = generator.input.shape[1:-1]
+    input_shape = generator.input.shape[1:4]
     input_imgs = rospy.wait_for_message(args.input_topic, CompressedImage)
     rospy.Subscriber('/cmd_vel', Twist,vel_callback)
     vel_publisher = rospy.Publisher('/cmd_vel', Twist, queue_size=1)
@@ -78,8 +78,11 @@ def main(args):
             prediction = prediction[...,0]
             rec_prediction = prediction[...,1]
         else:
-            input_imgs = np.concatenate((input_imgs[...,1:], prediction[...,0]), axis = -1)
-            rec_prediction = generator(input_imgs, training = False)[0,...,0]
+            input_imgs = np.concatenate((input_imgs[0,...,1:], prediction), axis = -1)
+            rec_prediction = generator(input_imgs[tf.newaxis,...], training = False)[0,...,0]
+            print(np.max(prediction), np.min(prediction))
+            print(np.max(rec_prediction), np.min(rec_prediction))
+            
         display_img = np.concatenate((current_frame, dividing_gap, prediction[...,0], dividing_gap, rec_prediction), axis=1)
         # display_img2 = cv2.normalize(display_img, None, 0, 1, cv2.NORM_MINMAX)
         display_img = (display_img + 1)/2
