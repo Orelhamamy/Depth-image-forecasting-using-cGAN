@@ -43,25 +43,10 @@ if not os.path.exists(model_name):
     os.makedirs(model_name)
 
 def read_img(img_name, data_set_path):
-
     x = tf.keras.preprocessing.image.load_img(data_set_path + img_name,
                                               color_mode='grayscale')
     x = tf.keras.preprocessing.image.img_to_array(x)
     x = x/127.5 - 1
-    
-    #     if len(imgs)==0:
-    #         imgs = x
-    #     else:
-    #         imgs = tf.concat([imgs,x], axis=2)
-    # output = tf.keras.preprocessing.image.load_img(data_set_path + files[OBSERVE_SIZE][0],
-    #                                                 color_mode='grayscale')
-    # output = tf.keras.preprocessing.image.img_to_array(output)
-    # for y_img_num in range(1,size_y_data):
-    #     y_output = tf.keras.preprocessing.image.load_img(data_set_path + files[OBSERVE_SIZE+y_img_num][0],
-    #                                                      color_mode='grayscale')
-    #     y_output = tf.keras.preprocessing.image.img_to_array(y_output)
-    #     output = tf.concat([output, y_output], axis = 2)
-    # output = tf.convert_to_tensor(output) / 127.5 - 1
     return x
     
     

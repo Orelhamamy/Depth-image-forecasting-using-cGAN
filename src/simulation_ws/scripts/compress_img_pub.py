@@ -32,29 +32,30 @@ class imgs_buffer():
     def __init__(self, topic, interval, shape):
         self.bridge = CvBridge()
         init_img = rospy.wait_for_message(topic, Image)
-        self.data = cv2.resize(self.bridge.imgmsg_to_cv2(init_img, desired_encoding='passthrough'),(shape[0],shape[1]))
+        self.data = cv2.resize(self.bridge.imgmsg_to_cv2(init_img, desired_encoding='passthrough'),(shape[0],shape[1]))/10
         self.data = np.expand_dims(self.data, -1)
         self.shape = shape
         self.rate = rospy.Rate(1/interval)
-        rospy.Subscriber(topic, Image, self.img_listen, queue_size= 1)
+        self.listen_topic = topic
+        rospy.Timer(rospy.Duration(interval), self.img_listen)
         
     
-    def img_listen(self, msg):
+    def img_listen(self, event):
+        msg = rospy.wait_for_message(self.listen_topic, Image)
         try:
             img = self.bridge.imgmsg_to_cv2(msg, desired_encoding='passthrough')
-            img = np.expand_dims(cv2.resize(img, (self.shape[0], self.shape[1])), -1)
+            img = np.expand_dims(cv2.resize(img, (self.shape[0], self.shape[1]))/10, -1)
             self.data = np.concatenate((self.data, img), axis = -1)
         except CvBridgeError:
             pass
         if (self.data.shape[-1]>self.shape[-1]):
             self.data = self.data[...,1:]
-        self.rate.sleep()
-    
+
 
     def compress(self):
         img = CompressedImage()
         img.header.stamp = rospy.Time.now()
-        img.format = "jpeg"
+        img.format = "jpg"
         img.data = self.data.tostring()
         return img
 

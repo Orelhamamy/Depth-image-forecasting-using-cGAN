@@ -2,5 +2,9 @@
     "python.autoComplete.extraPaths": [
         "/opt/ros/melodic/lib/python2.7/dist-packages",
         "/home/lab/cvbridge_build_ws/install/lib/python3/dist-packages"
+    ],
+    "python.analysis.extraPaths": [
+        "/opt/ros/melodic/lib/python2.7/dist-packages",
+        "/home/lab/cvbridge_build_ws/install/lib/python3/dist-packages"
     ]
 }
