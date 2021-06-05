@@ -54,7 +54,7 @@ def vel_callback(msg):
 
 def adjust_img(img):
     # Adjust the image for generator model
-    img = img*2-1
+    img = img/127.5-1
     return img[tf.newaxis,...]
 
 
@@ -82,10 +82,11 @@ def main(args):
             rec_prediction = generator(input_imgs[tf.newaxis,...], training = False)[0,...,0]
             print(np.max(prediction), np.min(prediction))
             print(np.max(rec_prediction), np.min(rec_prediction))
-            
-        display_img = np.concatenate((current_frame, dividing_gap, prediction[...,0], dividing_gap, rec_prediction), axis=1)
-        # display_img2 = cv2.normalize(display_img, None, 0, 1, cv2.NORM_MINMAX)
-        display_img = (display_img + 1)/2
+        norm_img = lambda x: cv2.normalize(x, None, 0, 1, cv2.NORM_MINMAX)
+        current_frame = ((current_frame+1)*127.5)/100
+        current_frame[current_frame>1]=1
+        display_img = np.concatenate((current_frame, dividing_gap, ((prediction[...,0]+1)/2), dividing_gap, (rec_prediction+1)/2), axis=1)
+        # display_img = (display_img + 1)/2
         # print(display_img[:,192:])
         cv2.imshow('prediction', display_img)
         cv2.waitKey(1)

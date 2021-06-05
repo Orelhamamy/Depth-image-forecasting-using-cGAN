@@ -4,6 +4,7 @@
 import os
 import tensorflow as tf
 import matplotlib.pyplot as plt
+import matplotlib.gridspec as gridspec
 import numpy as np
 from model_train_base import load_data
 from three_d_conv_model import Three_d_conv_model
@@ -27,10 +28,10 @@ def generate_image(imgs, input_size, save =False):
     else:
         plt.savefig(save)
 
-def plot_2D():
+def plot_2D(data_set_path, model_name):
     model_name = '--'
-    output_layers = [1, 2, 3]
-    data = load_data(data_set_path = '/home/lab/orel_ws/project/data_set/test/')
+    output_layers = [1, 2, 3, 4]
+    data = load_data(data_set_path)
     inx = 10
     
     try: 
@@ -56,19 +57,21 @@ def plot_2D():
     generate_image(data[:,:,inx:inx+input_size], input_size)
 
 
-def plot_3D_conv():
-    model = Three_d_conv_model(data_set_path = '/home/lab/orel_ws/project/data_set/test/', 
-                               model_name = '3D_conv_5_1.3', load_model = True)
+def plot_3D_conv(test_set_path, model_name):
+    model = Three_d_conv_model(model_name =model_name,data_set_path = test_set_path,
+                               load_model = True)
     output_layers = [1, 2, 3, 4]
-    inx = 366
+    inx = 169
     outputs = [model.generator.layers[i].output for i in output_layers]
     visual_gen = tf.keras.models.Model(inputs = model.generator.inputs, outputs = outputs)
     f_maps = visual_gen.predict(model.train_sequence[tf.newaxis, :,:,inx:inx+model.OBSERVE_SIZE, tf.newaxis])
     row = model.OBSERVE_SIZE
-    for feature_map in f_maps:
+    for layer, feature_map in enumerate(f_maps):
         col = feature_map.shape[-1]
         ix = 1
         plt.figure()
+        gs1 = gridspec.GridSpec(row, col)
+        gs1.update(wspace = 0.01, hspace = 0.01)
         for j in range(col): # columns
             for i in range(row): # rows
                 ax = plt.subplot2grid((row, col),(i,j))
@@ -76,10 +79,13 @@ def plot_3D_conv():
                 plt.imshow(feature_map[0,:,:,i,j], cmap= 'gray')
                 ix += 1
         plt.show()
+        plt.savefig('{}/feature-{}.png'.format(model_name, layer+1), bbox_inches='tight')
     plt.figure()
     model.generate_images(inx, model.generator, save = False)
 
     
 if __name__ =='__main__':
-    plot_3D_conv()
+    test_set_path = '/home/lab/orel_ws/project/data_set_armadillo/2/'
+    model_name =  'ARM-3D_conv'
+    plot_3D_conv(test_set_path, model_name)
     

@@ -11,11 +11,7 @@ from scipy.io import savemat, loadmat
 
 
 #data_set_path = '/home/lab/orel_ws/project/data_set/test/'
-model_name = 'cGAN_5pic_1y_train_2'
-observe_size = 20
-img_seq = load_data(data_set_path = '/home/lab/orel_ws/project/data_set/test/')        
-generator = tf.keras.models.load_model('{}/generator_0'.format(model_name))
-input_size = generator.input.shape[3]
+
 def read_prediction():
     file_path = '{}/read me.txt'.format(model_name)
     with open(file_path, 'r') as f:
@@ -24,8 +20,8 @@ def read_prediction():
                 inx = line.index('Prediction gap')+ len('Prediction gap')+1
                 return int(line[inx])
     return -1
-GAP_PREDICT = read_prediction()
-assert GAP_PREDICT!=-1, "Prediction gap not found in 'read me' file."
+
+
 
 def add_border(img , border_size = 1, intense = 1):
     img_size = img.shape
@@ -34,8 +30,16 @@ def add_border(img , border_size = 1, intense = 1):
     return new_img
 
 if __name__ == '__main__':
-    start_inx = tf.random.uniform([1],0,img_seq.shape[2]-GAP_PREDICT-observe_size, dtype = tf.dtypes.int32).numpy()[0]
-    # start_inx = 183
+    model_name = 'ARM-Recursive'
+    observe_size = 10
+    img_seq = load_data(data_set_path = '/home/lab/orel_ws/project/data_set_armadillo/2/')        
+    generator = tf.keras.models.load_model('{}/generator'.format(model_name))
+    input_size = generator.input.shape[3]
+    GAP_PREDICT = read_prediction()
+    assert GAP_PREDICT!=-1, "Prediction gap not found in 'read me' file."
+    observe_size+= GAP_PREDICT
+    # start_inx = tf.random.uniform([1],0,img_seq.shape[2]-GAP_PREDICT-observe_size, dtype = tf.dtypes.int32).numpy()[0]
+    start_inx = 195-GAP_PREDICT
     # strat_inx = 263
     
     x_real = add_border(img_seq[...,start_inx])

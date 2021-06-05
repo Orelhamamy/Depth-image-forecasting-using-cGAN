@@ -11,32 +11,6 @@ import datetime
 import copy
 from scipy.io import savemat, loadmat
 from plot_state_and_pre import add_border
-'''
-data_set_path = '/home/lab/orel_ws/project/simulation_ws/data_set/'
-# train_dataset = tf.data.Dataset.list_files(data_set_path + '/*.jpg')
-file_num = lambda x: int(x[x.index('--')+2:x.index('.jpg')])
-
-file_list = [[file, file_num(file)] for file in os.listdir(data_set_path)
-             if file.endswith('.jpg')]
-file_list.sort(key = lambda x:x[1])
-BUFFER_SIZE = len(file_list)
-BATCH_SIZE = 1
-HEIGHT, WIDTH = 128, 128
-EPOCHS = 10
-VAR = 0.02 # Variance of initialize kernels.
-ALPHA = 0.2 # Alpha for leakyReLU
-DROP_RATE = 0.5 # Dropout rate for upsample.
-OBSERVE_SIZE = 5 # How many img to observe
-Y_TRAIN_SIZE = 5 # How many img to learn recursive 1= without recursion
-OUTPUT_SIZE = 1
-LAMBDA = 100 # determine the weight of l1 in Loss function (generator) LAMBDA = 0 -> cancel l1_loss
-loss_object  = tf.keras.losses.BinaryCrossentropy(from_logits=True)
-LR_GEN =2e-4; BETA_1_GEN =0.5; BETA_2_GEN =.999
-LR_DISC =2e-4; BETA_1_DISC =0.5; BETA_2_DISC =.999
-ITERATION_GEN = 1 ; ITERATION_DISC = 1
-log_dir = 'logs/'
-checkpoint_dir = './traning_checkpoints'
-'''
 
 
 class Three_d_conv_model():
@@ -415,31 +389,36 @@ class Three_d_conv_model():
         input_imgs = np.concatenate((input_imgs, target_imgs),axis = -1).reshape(input_imgs.shape[0],-1)
         return np.concatenate((input_imgs, gen_imgs),axis = 0 )
             
-    def model_validation(self, start_inx = 0, end_inx = -1, test_path = False, rate_hz = 4):
+    def create_test_set(self, start_inx, end_inx, test_path):
+        gap = 1
+        self.test
+        if 'armadillo' in self.data_set_path:
+            start_inx *=10; end_inx *=10; gap = 10 # For armadillo data-set
+            # Create the test_set with the update data path
+        file_list = [[file, self.file_num(file)] for file in os.listdir(test_path) 
+                     if file.endswith('.jpg') and self.file_num(file)>=start_inx and
+                     self.file_num(file)<end_inx and self.file_num(file)%gap==0] # - Armadillo Generate file list with the range.
+        file_list.sort(key= lambda x:x[1])
+        end_inx = file_list[-1][1]
+        test_set = self.read_img(test_path + file_list[0][0])
+        self.test_files = file_list
+        for img_name in file_list[1:]:
+            test_set = np.concatenate((test_set, self.read_img(test_path + img_name[0])), axis=2)
+        self.test_set = test_set
+        
+        
+    def model_validation(self, start_inx = 0, end_inx = -1, test_path = False, pause_time =0.25):
         if end_inx==-1:
             end_inx = start_inx+self.OBSERVE_SIZE*5 # default is 5 times the observe size
         if not test_path:
             if end_inx>self.data_set_size: end_inx=self.data_set_size
             test_set = self.train_sequence[:,:,start_inx:end_inx]
         else:
-            gap = 1
-            if 'armadillo' in self.data_set_path:
-                start_inx *=10; end_inx *=10; gap = 10 # For armadillo data-set
-            # Create the test_set with the update data path
-            file_list = [[file, self.file_num(file)] for file in os.listdir(test_path) 
-                  if file.endswith('.jpg') and self.file_num(file)>=start_inx and
-                  self.file_num(file)<end_inx and self.file_num(file)%gap==0] # - Armadillo Generate file list with the range.
-            file_list.sort(key= lambda x:x[1])
-            
-            test_set = self.read_img(test_path + file_list[0][0])
-            self.test = file_list
-            for img_name in file_list[1:]:
-                test_set = np.concatenate((test_set, self.read_img(test_path + img_name[0])), axis=2)
-                     
-        for inx in range(end_inx - 2*self.OBSERVE_SIZE - start_inx-1):
+            self.create_test_set(start_inx, end_inx, test_path)
+        for inx in range(np.shape(test_set)[2]):
             input_data = test_set[:,:,inx:inx + self.OBSERVE_SIZE]
             target = test_set[:,:,inx +self.OBSERVE_SIZE:inx +2*self.OBSERVE_SIZE]
-            if target.shape[2]<5:
+            if target.shape[2]<self.OBSERVE_SIZE:
                 break
             img = self.create_seq_img(input_data, target)
             normal = np.zeros(img.shape)
@@ -452,15 +431,15 @@ class Three_d_conv_model():
             if k ==27 or k== ord('q'): 
                 break
             elif k==ord('a'):
-                time.sleep(3.)
+                time.sleep(1.5)
             elif k==ord('s'):
-                cv2.imwrite("{}/sample-{} model-{}.png".format(self.model_name, str(inx), self.model_name), np.array(normal*255,dtype='uint8'))                
-            time.sleep(1/rate_hz)
+                cv2.imwrite("{}/sample-{} model-{}.png".format(self.model_name, str(start_inx+inx+1), self.model_name), np.array(normal*255,dtype='uint8'))                
+            time.sleep(pause_time)
             
         
 if __name__ == '__main__':     
-    model_name = '3D_conv_5_1.3'
-    model = Three_d_conv_model(model_name,'/home/lab/orel_ws/project/src/simulation_ws/data_set/',
+    model_name = 'ARM-3D_conv'
+    model = Three_d_conv_model(model_name,
                             load_model=True)
 
 
@@ -472,11 +451,10 @@ if __name__ == '__main__':
     # model.print_model()
     # model.fit(150, model_name, disc_reff=False)
     # model.fit(150, model_name, disc_reff=True)
-    # Test for 1.3 
-    model.model_validation(100,360, test_path='/home/lab/orel_ws/project/data_set/test/')
     
-    # Test for 1.4
-    # model.model_validation(75,350,test_path='/home/lab/orel_ws/project/data_set_armadillo/2/') 
+    # model.model_validation(0,1000, test_path='/home/lab/orel_ws/project/data_set/test/')
+    
+    model.model_validation(0,350,test_path='/home/lab/orel_ws/project/data_set_armadillo/2/') 
 
 
 

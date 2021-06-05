@@ -19,7 +19,7 @@ from scipy.io import savemat
 #DATA_SET_SIZE = len(file_list)
 BATCH_SIZE = 1
 HEIGHT, WIDTH = 128, 128
-EPOCHS = 10
+EPOCHS = 150
 VAR = 0.02 # Variance of initialize kernels.
 ALPHA = 0.2 # Alpha for leakyReLU.
 DROP_RATE = 0.5 # Dropout rate for upsample.
@@ -32,7 +32,7 @@ loss_object  = tf.keras.losses.BinaryCrossentropy(from_logits=True)
 LR_GEN =15e-5; BETA_1_GEN =0.5; BETA_2_GEN =.999
 LR_DISC =2e-4; BETA_1_DISC =0.5; BETA_2_DISC =.999
 ITERATION_GEN = 1 ; ITERATION_DISC = 1
-model_name = 'cGAN_rec_test'
+model_name = 'cGAN_5pic_2y_train_2.4'
 # data_set_path = '/home/lab/orel_ws/project/data_set_armadillo/3/'
 data_set_path = '/home/lab/orel_ws/project/src/simulation_ws/data_set/'
 losses_val = np.zeros((4,0))
@@ -381,8 +381,6 @@ def fit(train_sequence, epochs = EPOCHS, step = 0, model_name= 'generic_model'):
 if __name__ =='__main__':
     train_sequence = load_data(data_set_path)
     DATA_SET_SIZE = train_sequence.shape[2]
-    # train_sequence = train_sequence[:,:,:100]
-    # DATA_SET_SIZE = 100
     
     try: 
         generator = tf.keras.models.load_model(model_name+'/generator')
