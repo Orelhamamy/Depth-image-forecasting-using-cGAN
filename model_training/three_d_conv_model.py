@@ -6,7 +6,7 @@ import time
 import cv2
 import tensorflow as tf
 import numpy as np
-import matplotlib.pyplot as plt
+from matplotlib import pyplot as plt, image as mpimg
 import datetime
 import copy
 from scipy.io import savemat, loadmat
@@ -391,7 +391,6 @@ class Three_d_conv_model():
             
     def create_test_set(self, start_inx, end_inx, test_path):
         gap = 1
-        self.test
         if 'armadillo' in self.data_set_path:
             start_inx *=10; end_inx *=10; gap = 10 # For armadillo data-set
             # Create the test_set with the update data path
@@ -404,7 +403,7 @@ class Three_d_conv_model():
         self.test_files = file_list
         for img_name in file_list[1:]:
             test_set = np.concatenate((test_set, self.read_img(test_path + img_name[0])), axis=2)
-        self.test_set = test_set
+        return test_set
         
         
     def model_validation(self, start_inx = 0, end_inx = -1, test_path = False, pause_time =0.25):
@@ -414,7 +413,7 @@ class Three_d_conv_model():
             if end_inx>self.data_set_size: end_inx=self.data_set_size
             test_set = self.train_sequence[:,:,start_inx:end_inx]
         else:
-            self.create_test_set(start_inx, end_inx, test_path)
+            test_set = self.create_test_set(start_inx, end_inx, test_path)
         for inx in range(np.shape(test_set)[2]):
             input_data = test_set[:,:,inx:inx + self.OBSERVE_SIZE]
             target = test_set[:,:,inx +self.OBSERVE_SIZE:inx +2*self.OBSERVE_SIZE]
@@ -433,7 +432,7 @@ class Three_d_conv_model():
             elif k==ord('a'):
                 time.sleep(1.5)
             elif k==ord('s'):
-                cv2.imwrite("{}/sample-{} model-{}.png".format(self.model_name, str(start_inx+inx+1), self.model_name), np.array(normal*255,dtype='uint8'))                
+                mpimg.imsave("{}/sample-{} model-{}.png".format(self.model_name, str(start_inx+inx+1), self.model_name), normal, cmap = 'gray')
             time.sleep(pause_time)
             
         

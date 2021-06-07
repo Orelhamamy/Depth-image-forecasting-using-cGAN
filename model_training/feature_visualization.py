@@ -56,7 +56,7 @@ def plot_2D(test_set_path, model_name, inx):
         # plt.tight_layout()
         plt.show()
         plt.savefig('{}/{} feature-{}.png'.format(model_name, model_name, layer+1), dpi=dpi)
-        plt.savefig('{}/{} feature-{}.esp'.format(model_name, model_name, layer+1), dpi=dpi, format='eps',pad_inches=0.0)
+        plt.savefig('{}/{} feature-{}.eps'.format(model_name, model_name, layer+1), dpi=dpi, format='eps',pad_inches=0.0)
     plt.figure()
     generate_image(data[:,:,inx:inx+input_size], input_size)
 
@@ -85,7 +85,7 @@ def plot_3D_conv(test_set_path, model_name, inx):
         # plt.tight_layout()
         plt.subplots_adjust(top = 1, bottom = 0, left = 0, right =1 ,wspace= .05, hspace = .05)
         plt.savefig('{}/{} feature-{}.png'.format(model_name, model_name, layer+1), dpi=dpi)
-        plt.savefig('{}/{} feature-{}.esp'.format(model_name, model_name, layer+1), dpi=dpi, format='eps')
+        plt.savefig('{}/{} feature-{}.eps'.format(model_name, model_name, layer+1), dpi=dpi, format='eps')
     plt.figure()
     model.generate_images(inx, model.generator, save = False)
 
