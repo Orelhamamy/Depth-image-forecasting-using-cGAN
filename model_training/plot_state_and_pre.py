@@ -30,16 +30,16 @@ def add_border(img , border_size = 1, intense = 1):
     return new_img
 
 if __name__ == '__main__':
-    model_name = 'ARM-Recursive'
+    model_name = 'SM-Recursive'
     observe_size = 10
-    img_seq = load_data(data_set_path = '/home/lab/orel_ws/project/data_set_armadillo/2/')        
-    generator = tf.keras.models.load_model('{}/generator'.format(model_name))
+    img_seq = load_data(data_set_path = '/home/lab/orel_ws/project/data_set/test/')        
+    generator = tf.keras.models.load_model('{}/generator_0'.format(model_name))
     input_size = generator.input.shape[3]
     GAP_PREDICT = read_prediction()
     assert GAP_PREDICT!=-1, "Prediction gap not found in 'read me' file."
     observe_size+= GAP_PREDICT
     # start_inx = tf.random.uniform([1],0,img_seq.shape[2]-GAP_PREDICT-observe_size, dtype = tf.dtypes.int32).numpy()[0]
-    start_inx = 195-GAP_PREDICT
+    start_inx = 178-GAP_PREDICT
     # strat_inx = 263
     
     x_real = add_border(img_seq[...,start_inx])
@@ -69,4 +69,4 @@ if __name__ == '__main__':
     plt.imshow(full_img, cmap = 'gray',vmin= -1, vmax = 1)
     plt.axis('off')
     
-    mpimg.imsave('{}/test_sample-{}.png'.format(model_name, start_inx+1), full_img, cmap = 'gray')
+    mpimg.imsave('{}/sample-{} model-{}.png'.format(model_name, start_inx+1, model_name), full_img, cmap = 'gray')
