@@ -40,18 +40,21 @@ def plot_2D(test_set_path, model_name, inx):
     visual_gen = tf.keras.models.Model(inputs = visual_gen.inputs, outputs = outputs)
     input_size = visual_gen.inputs[0].shape[3]
     f_maps = visual_gen.predict(data[tf.newaxis, :,:,inx:inx+input_size])
+    dpi = 1200
+    fig_width = 8.3
     for layer, feature_map in enumerate(f_maps):
         dim = np.int(np.ceil(np.sqrt(feature_map.shape[3])))
+        nrow = np.ceil(dim/2)
+        ncol = dim*2
         ix = 1
+        fig_height = fig_width*nrow/ncol
         img_dim = feature_map.shape[1]
-        dpi = 1200
-        plt.figure(figsize=(dim*img_dim*1.1/dpi,dim*img_dim*1.1/dpi), dpi=dpi)
+        plt.figure(figsize=(fig_width, fig_height), dpi=dpi)
         while(ix<=feature_map.shape[3]):
-            ax = plt.subplot(dim, dim, ix)
+            ax = plt.subplot(nrow, ncol, ix)
             ax.axis('off')
             plt.imshow(feature_map[0,:,:,ix-1], cmap= 'gray')
             ix += 1
-        
         plt.subplots_adjust(top = 1, bottom = 0, left = 0, right =1 ,wspace= .05, hspace = .05)
         # plt.tight_layout()
         plt.show()
@@ -73,7 +76,9 @@ def plot_3D_conv(test_set_path, model_name, inx):
         col = feature_map.shape[-1]
         img_dim = feature_map.shape[1]
         dpi = 1200
-        plt.figure(figsize=(col*img_dim*1.2/dpi,row*img_dim*1.3/dpi), dpi=dpi)
+        fig_width = 8.3
+        fig_height = 8.3*(row*2.6)/(col*1.2)
+        plt.figure(figsize=(fig_width, fig_height), dpi=dpi)
         # gs1 = gridspec.GridSpec(row, col)
         # gs1.update(wspace = 0.01, hspace = 0.01)
         for j in range(col): # columns
