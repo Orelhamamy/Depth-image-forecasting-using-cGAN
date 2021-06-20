@@ -11,41 +11,37 @@ import copy
 import argparse
 from sensor_msgs.msg import CompressedImage
 from geometry_msgs.msg import Twist
+from matplotlib.backends.backend_agg import FigureCanvasAgg as FigureCanvas
+from matplotlib.figure import Figure
+from PIL import Image, ImageDraw, ImageFont
 
 
-#from scipy.io import savemat
-#import datetime
+# from scipy.io import savemat
+# import datetime
 
-# HEIGHT, WIDTH = 128, 128 
+# HEIGHT, WIDTH = 128, 128
 # depth_camera = '/depth_camera/depth/image_raw'
 # model_path ='/home/lab/orel_ws/project/model_training/' + '3D_conv_5_1.3'
 vel_cmd = Twist()
 
+
 def parser():
     parser = argparse.ArgumentParser()
-    parser.add_argument("--input_topic", default= "/depth_camera/depth/image_raw/Compressed",
-                        help= "The listen topic by the model.")
-    parser.add_argument("--model_name", default= "3D_conv_5_1.3",
-                            help="The name of the loaded model.")
-    parser.add_argument("--model_path", default="/home/lab/orel_ws/project/model_training/",
-                            help="The model dirctory..")
+    parser.add_argument(
+        "--input_topic",
+        default="/depth_camera/depth/image_raw/Compressed",
+        help="The listen topic by the model.",
+    )
+    parser.add_argument(
+        "--model_name", default="SM-3D_conv", help="The name of the loaded model."
+    )
+    parser.add_argument(
+        "--model_path",
+        default="/home/lab/orel_ws/project/model_training/",
+        help="The model dirctory..",
+    )
     return parser.parse_args()
 
-'''
-class image_buffer():
-    # Save image as input size
-    def __init__(self, input_shape, bridge):
-        self.img_seq = np.ones(input_shape)
-        self.bridge = bridge
-        
-    def update_img(self, event):
-        print('123\n\n\n')
-        img_msg = rospy.wait_for_message(depth_camera,Image)
-        img = self.bridge.imgmsg_to_cv2(img_msg, desired_encoding='passthrough')
-        img = cv2.resize(img, (WIDTH, HEIGHT))*10/127.5-1.
-        self.img_seq = np.concatenate((self.img_seq, img), axis = 2)[:,:,-5]
-        print(self.img_seq.shape)
-   '''     
 
 def vel_callback(msg):
     global vel_cmd
@@ -54,57 +50,96 @@ def vel_callback(msg):
 
 def adjust_img(img):
     # Adjust the image for generator model
-    img = img/127.5-1
-    return img[tf.newaxis,...]
+    img = img / 127.5 - 1
+    return img[tf.newaxis, ...]
 
+
+def create_velocity_arrow(fig, canvas, ax):
+    ax.clear()
+    speed = np.linalg.norm(np.array([vel_cmd.angular.z, vel_cmd.linear.x]))
+    arrow_width = speed*0.05 + .01
+    ax.arrow(0.5, 0.25, -vel_cmd.angular.z, vel_cmd.linear.x,
+             width=arrow_width, head_width=0.5*speed, head_length=0.5*speed,
+             fc="k", ec="k")
+    ax.text(0.15, 1.25, "Velocity vector", fontsize=30)
+    ax.axis("off")
+    ax.set_xlim(-.25, 1.25)
+    ax.set_ylim(-.25, 1.25)
+    canvas.draw()
+    img_shape = fig.canvas.get_width_height()[::-1] + (3,)
+    image_from_plot = np.frombuffer(fig.canvas.tostring_rgb(), dtype=np.uint8).reshape(
+        img_shape)
+    image_from_plot = cv2.resize(image_from_plot, (256, 256))
+    grey_img = np.dot(image_from_plot[..., :3], [0.2989, 0.5870, 0.1140])
+    return grey_img
+
+
+def create_avg_text(avg, img_shape, fnt):
+
+    img = Image.new('L', (img_shape), color=(255))
+    d = ImageDraw.Draw(img)
+
+    d.text((0, 10), "Computation time:{:.3f}(sec)".format(avg), font=fnt, fill=(0))
+    return np.asarray(img)
 
 
 def main(args):
     global vel_cmd
+    fig = Figure(figsize=(512/100, 512/100))
+    canvas = FigureCanvas(fig)
+    ax = fig.gca()
+    avg_calc = .0
+    counter = 0
+    ax.set_aspect("equal")
+    fnt = ImageFont.truetype("/home/lab/orel_ws/arial.ttf", 15)
+
     model_path = args.model_path + args.model_name
-    generator = tf.keras.models.load_model('{}/generator_0'.format(model_path))
+    generator = tf.keras.models.load_model("{}/generator".format(model_path))
     input_shape = generator.input.shape[1:4]
     input_imgs = rospy.wait_for_message(args.input_topic, CompressedImage)
-    rospy.Subscriber('/cmd_vel', Twist,vel_callback)
-    vel_publisher = rospy.Publisher('/cmd_vel', Twist, queue_size=1)
-    dividing_gap = np.ones((generator.input.shape[1],int(generator.input.shape[1]/2)))
+    rospy.Subscriber("/cmd_vel", Twist, vel_callback)
+    # vel_publisher = rospy.Publisher("/cmd_vel", Twist, queue_size=1)
+    dividing_gap = np.ones(
+        (generator.input.shape[1], int(generator.input.shape[1] / 2))
+    )
     while not rospy.is_shutdown():
         start_time = rospy.Time.now()
         input_imgs = np.fromstring(input_imgs.data, np.float32).reshape(input_shape)
         input_imgs = adjust_img(input_imgs)
-        current_frame = copy.copy(input_imgs[0,:,:,-1])
-        prediction = generator(input_imgs, training = False)[0,...]
-        if '3D' in args.model_name:
-            prediction = prediction[...,0]
-            rec_prediction = prediction[...,1]
+        current_frame = copy.copy(input_imgs[0, :, :, -1])
+        prediction = generator(input_imgs, training=False)[0, ...]
+        if "3D" in args.model_name:
+            prediction = prediction[..., 0]
+            rec_prediction = prediction[..., 1]
         else:
-            input_imgs = np.concatenate((input_imgs[0,...,1:], prediction), axis = -1)
-            rec_prediction = generator(input_imgs[tf.newaxis,...], training = False)[0,...,0]
-            print(np.max(prediction), np.min(prediction))
-            print(np.max(rec_prediction), np.min(rec_prediction))
-        norm_img = lambda x: cv2.normalize(x, None, 0, 1, cv2.NORM_MINMAX)
-        current_frame = ((current_frame+1)*127.5)/100
-        current_frame[current_frame>1]=1
-        display_img = np.concatenate((current_frame, dividing_gap, ((prediction[...,0]+1)/2), dividing_gap, (rec_prediction+1)/2), axis=1)
-        # display_img = (display_img + 1)/2
-        # print(display_img[:,192:])
-        cv2.imshow('prediction', display_img)
+            input_imgs = np.concatenate((input_imgs[0, ..., 1:], prediction), axis=-1)
+            rec_prediction = generator(input_imgs[tf.newaxis, ...], training=False)[
+                0, ..., 0
+            ]
+
+        def norm_img(x):
+            return cv2.normalize(x, None, 0, 1, cv2.NORM_MINMAX)
+
+        current_frame = ((current_frame + 1) * 127.5) / 100
+        current_frame[current_frame > 1] = 1
+        display_img = np.concatenate((current_frame, dividing_gap,
+                                     ((prediction[..., 0] + 1) / 2),
+                                     dividing_gap, (rec_prediction + 1) / 2,
+                                      ), axis=1)
+
+        arrow = create_velocity_arrow(fig, canvas, ax)/256
+        avg_calc_image = create_avg_text(avg_calc, (256, 256), fnt)/256
+        arrow = np.concatenate((avg_calc_image, arrow), axis=1)
+        display_img = np.concatenate((display_img, arrow), axis=0)
+        cv2.imshow("prediction", display_img)
         cv2.waitKey(1)
-        print("Computation time for {}: {} (sec)".format(args.model_name,(rospy.Time.now()-start_time).to_sec()))
+        avg_calc = (rospy.Time.now() - start_time).to_sec()
+        # print("Computation time for {}: {} (sec)".format(
+        #         args.model_name, avg_calc))
+        counter += 1
         input_imgs = rospy.wait_for_message(args.input_topic, CompressedImage)
-        '''
-        temp_vel = copy.copy(vel_cmd)
-        if np.any(prediction[:64,:64:98]<-0.98):
-            temp_vel.angular.z += 0.5
-        elif np.any(prediction[:64,:64]<-0.95):
-            temp_vel.angular.z -= 0.5
-        if np.mean(prediction[32:96,32:64])<=-0.95:
-            temp_vel.linear.x = -0.5
-        vel_publisher.publish(temp_vel)
-        rospy.sleep(2.5)
-        vel_publisher.publish(vel_cmd)
-        '''
-        
-if __name__ =='__main__':
-    rospy.init_node('obstacle_avoidance')
+
+
+if __name__ == "__main__":
+    rospy.init_node("obstacle_avoidance")
     main(parser())
