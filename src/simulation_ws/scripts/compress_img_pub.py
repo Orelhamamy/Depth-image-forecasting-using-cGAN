@@ -38,19 +38,17 @@ class imgs_buffer():
         self.rate = rospy.Rate(1/interval)
         self.listen_topic = topic
         rospy.Timer(rospy.Duration(interval), self.img_listen)
-        
-    
+
     def img_listen(self, event):
         msg = rospy.wait_for_message(self.listen_topic, Image)
         try:
             img = self.bridge.imgmsg_to_cv2(msg, desired_encoding='passthrough')
             img = np.expand_dims(cv2.resize(img, (self.shape[0], self.shape[1]))*10, -1)
-            self.data = np.concatenate((self.data, img), axis = -1)
+            self.data = np.concatenate((self.data, img), axis=-1)
         except CvBridgeError:
             pass
-        if (self.data.shape[-1]>self.shape[-1]):
-            self.data = self.data[...,1:]
-
+        if (self.data.shape[-1] > self.shape[-1]):
+            self.data = self.data[..., 1:]
 
     def compress(self):
         img = CompressedImage()
@@ -65,7 +63,7 @@ def main(args):
     publisher = rospy.Publisher(args.publish_topic, CompressedImage, queue_size= 1)
     seq_imgs = imgs_buffer(args.depth_camera_path, args.interval, (args.img_shape[0],args.img_shape[1] , args.observe_size))
     while not rospy.is_shutdown():
-        if (seq_imgs.data.shape[-1]==args.observe_size):
+        if (seq_imgs.data.shape[-1] == args.observe_size):
             publisher.publish(seq_imgs.compress())
             seq_imgs.rate.sleep()
 
