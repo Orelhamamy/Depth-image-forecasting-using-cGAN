@@ -1,8 +1,7 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
 
-import os
-import time
+
 import tensorflow as tf
 import cv2
 import numpy as np
@@ -61,7 +60,7 @@ def create_velocity_arrow(fig, canvas, ax):
     ax.arrow(0.5, 0.25, -vel_cmd.angular.z, vel_cmd.linear.x,
              width=arrow_width, head_width=0.5*speed, head_length=0.5*speed,
              fc="k", ec="k")
-    ax.text(0.15, 1.25, "Velocity vector", fontsize=30)
+    # ax.text(0.15, 1.25, "Velocity vector", fontsize=30)
     ax.axis("off")
     ax.set_xlim(-.25, 1.25)
     ax.set_ylim(-.25, 1.25)
@@ -74,12 +73,13 @@ def create_velocity_arrow(fig, canvas, ax):
     return grey_img
 
 
-def create_avg_text(avg, img_shape, fnt):
+def create_avg_text(comp_time, img_shape, fnt, model_name):
 
     img = Image.new('L', (img_shape), color=(255))
     d = ImageDraw.Draw(img)
 
-    d.text((0, 10), "Computation time:{:.3f}(sec)".format(avg), font=fnt, fill=(0))
+    d.text((10, 128), "Computation time:{:.3f}(sec)\nModel: {}".format(comp_time, model_name), font=fnt, fill=(0))
+
     return np.asarray(img)
 
 
@@ -91,7 +91,8 @@ def main(args):
     avg_calc = .0
     counter = 0
     ax.set_aspect("equal")
-    fnt = ImageFont.truetype("/home/lab/orel_ws/arial.ttf", 15)
+    fnt = ImageFont.truetype("/home/lab/orel_ws/Rubik-Regular.ttf", 18)
+
 
     model_path = args.model_path + args.model_name
     generator = tf.keras.models.load_model("{}/generator".format(model_path))
@@ -99,9 +100,7 @@ def main(args):
     input_imgs = rospy.wait_for_message(args.input_topic, CompressedImage)
     rospy.Subscriber("/cmd_vel", Twist, vel_callback)
     # vel_publisher = rospy.Publisher("/cmd_vel", Twist, queue_size=1)
-    dividing_gap = np.ones(
-        (generator.input.shape[1], int(generator.input.shape[1] / 2))
-    )
+    dividing_gap = np.ones((generator.input.shape[1], int(generator.input.shape[1] / 2)), dtype=np.float32)
     while not rospy.is_shutdown():
         start_time = rospy.Time.now()
         input_imgs = np.fromstring(input_imgs.data, np.float32).reshape(input_shape)
@@ -113,30 +112,28 @@ def main(args):
             rec_prediction = prediction[..., 1]
         else:
             input_imgs = np.concatenate((input_imgs[0, ..., 1:], prediction), axis=-1)
-            rec_prediction = generator(input_imgs[tf.newaxis, ...], training=False)[
-                0, ..., 0
-            ]
-
-        def norm_img(x):
-            return cv2.normalize(x, None, 0, 1, cv2.NORM_MINMAX)
-
+            rec_prediction = generator(input_imgs[tf.newaxis, ...], training=False)[0, ..., 0]
+        
+        comp_calc = (rospy.Time.now() - start_time).to_sec()
         current_frame = ((current_frame + 1) * 127.5) / 100
         current_frame[current_frame > 1] = 1
         display_img = np.concatenate((current_frame, dividing_gap,
-                                     ((prediction[..., 0] + 1) / 2),
-                                     dividing_gap, (rec_prediction + 1) / 2,
+                                     ((prediction[..., 0] + 1)),
+                                     dividing_gap, (rec_prediction + 1),
                                       ), axis=1)
-
-        arrow = create_velocity_arrow(fig, canvas, ax)/256
-        avg_calc_image = create_avg_text(avg_calc, (256, 256), fnt)/256
-        arrow = np.concatenate((avg_calc_image, arrow), axis=1)
+        arrow = create_velocity_arrow(fig, canvas, ax)/255
+        compu_calc_image = create_avg_text(comp_calc, (256, 256), fnt, args.model_name)/255
+        arrow = np.concatenate((compu_calc_image, arrow), axis=1)
         display_img = np.concatenate((display_img, arrow), axis=0)
+        display_img = cv2.copyMakeBorder(display_img, top=50, bottom=0, left=20, right=20, borderType=cv2.BORDER_CONSTANT, value=[1, 1])
+        # display_img = np.concatenate((display_img, np.ones((np.shape(display_img)[0], 10), dtype=np.float32)), axis=1)
         cv2.imshow("prediction", display_img)
         cv2.waitKey(1)
-        avg_calc = (rospy.Time.now() - start_time).to_sec()
-        # print("Computation time for {}: {} (sec)".format(
-        #         args.model_name, avg_calc))
-        counter += 1
+        if (comp_calc < 0.1):
+            avg_calc = (avg_calc*counter + comp_calc) / (counter+1)
+            print("Average computation time for {}: {:.4f} (sec)".format(args.model_name, avg_calc))
+            counter += 1
+
         input_imgs = rospy.wait_for_message(args.input_topic, CompressedImage)
 
 
