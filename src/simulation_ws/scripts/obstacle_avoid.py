@@ -60,7 +60,9 @@ def create_velocity_arrow(fig, canvas, ax):
     ax.arrow(0.5, 0.25, -vel_cmd.angular.z, vel_cmd.linear.x,
              width=arrow_width, head_width=0.5*speed, head_length=0.5*speed,
              fc="k", ec="k")
+
     # ax.text(0.15, 1.25, "Velocity vector", fontsize=30)
+
     ax.axis("off")
     ax.set_xlim(-.25, 1.25)
     ax.set_ylim(-.25, 1.25)
@@ -79,7 +81,6 @@ def create_avg_text(comp_time, img_shape, fnt, model_name):
     d = ImageDraw.Draw(img)
 
     d.text((10, 128), "Computation time:{:.3f}(sec)\nModel: {}".format(comp_time, model_name), font=fnt, fill=(0))
-
     return np.asarray(img)
 
 
@@ -112,7 +113,7 @@ def main(args):
         else:
             input_imgs = np.concatenate((input_imgs[0, ..., 1:], prediction), axis=-1)
             rec_prediction = generator(input_imgs[tf.newaxis, ...], training=False)[0, ..., 0]
-
+        
         comp_calc = (rospy.Time.now() - start_time).to_sec()
         current_frame = ((current_frame + 1) * 127.5) / 100
         current_frame[current_frame > 1] = 1
