@@ -42,7 +42,7 @@ def plot_2D(test_set_path, model_name, inx, save_path = ''):
     visual_gen = tf.keras.models.Model(inputs = visual_gen.inputs, outputs = outputs)
     input_size = visual_gen.inputs[0].shape[3]
     f_maps = visual_gen.predict(data[tf.newaxis, :,:,inx:inx+input_size])
-    dpi = 200
+    dpi = 100
     fig_width = 8.3
     for layer, feature_map in enumerate(f_maps):
         dim = np.int(np.ceil(np.sqrt(feature_map.shape[3])))
@@ -75,7 +75,7 @@ def plot_3D_conv(test_set_path, model_name, inx, save_path = ''):
     row = model.OBSERVE_SIZE
     for layer, feature_map in enumerate(f_maps):
         col = feature_map.shape[-1]
-        dpi = 200
+        dpi = 100
         fig_width = 8.3
         fig_height = fig_width*row/col
         plt.figure(figsize=(fig_width, fig_height), dpi=dpi)
@@ -93,9 +93,11 @@ def plot_3D_conv(test_set_path, model_name, inx, save_path = ''):
 
     
 if __name__ =='__main__':
-    test_set_path = '/home/lab/orel_ws/project/data_set_armadillo/2/'
-    model_name =  'ARM-Recursive'
-    save_path = '/home/lab/orel_ws/project/results/features/'
+    test_set_path = '/home/lab/orel_ws/project/data_set/test/'
+    model_name =  'SM-Gap'
+    save_path = '/home/lab/orel_ws/project/results/features/100dpi/'
+    if not os.path.exists(save_path):
+        os.makedirs(save_path)
     if "3D" in model_name:
         plot_3D_conv(test_set_path, model_name, 196, save_path)
     else:
