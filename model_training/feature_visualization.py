@@ -46,8 +46,10 @@ def plot_2D(test_set_path, model_name, inx, save_path = ''):
     fig_width = 8.3
     for layer, feature_map in enumerate(f_maps):
         dim = np.int(np.ceil(np.sqrt(feature_map.shape[3])))
-        nrow = np.ceil(dim/2)
-        ncol = dim*2
+        nrow = ncol = dim
+        if layer!=0:
+            nrow = np.ceil(dim/2)
+            ncol = dim*2
         ix = 1
         fig_height = fig_width*nrow/ncol
         plt.figure(figsize=(fig_width, fig_height), dpi=dpi)
@@ -94,12 +96,12 @@ def plot_3D_conv(test_set_path, model_name, inx, save_path = ''):
     
 if __name__ =='__main__':
     test_set_path = '/home/lab/orel_ws/project/data_set_armadillo/2/'
-    # test_set_path = '/home/lab/orel_ws/project/data_set/test/'
-    model_name =  'ARM-Recursive'
+    test_set_path = '/home/lab/orel_ws/project/data_set/test/'
+    model_name =  'SM-Recursive'
     save_path = '/home/lab/orel_ws/project/results/features/100dpi/'
     if not os.path.exists(save_path):
         os.makedirs(save_path)
-    inx = [178 if "SM" in model_name else 195][0]
+    inx = 178 if "SM" in model_name else 195
     if "3D" in model_name:
         plot_3D_conv(test_set_path, model_name, inx, save_path)
     else:
