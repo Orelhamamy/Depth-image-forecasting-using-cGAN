@@ -93,13 +93,16 @@ def plot_3D_conv(test_set_path, model_name, inx, save_path = ''):
 
     
 if __name__ =='__main__':
-    test_set_path = '/home/lab/orel_ws/project/data_set/test/'
-    model_name =  'SM-Gap'
+    test_set_path = '/home/lab/orel_ws/project/data_set_armadillo/2/'
+    # test_set_path = '/home/lab/orel_ws/project/data_set/test/'
+    model_name =  'ARM-Recursive'
     save_path = '/home/lab/orel_ws/project/results/features/100dpi/'
     if not os.path.exists(save_path):
         os.makedirs(save_path)
+    inx = [178 if "SM" in model_name else 195][0]
     if "3D" in model_name:
-        plot_3D_conv(test_set_path, model_name, 196, save_path)
+        plot_3D_conv(test_set_path, model_name, inx, save_path)
     else:
-        plot_2D(test_set_path,model_name, 178, save_path)
+        if "Gap" in model_name: inx-=2
+        plot_2D(test_set_path,model_name, inx, save_path)
     plt.close('all')

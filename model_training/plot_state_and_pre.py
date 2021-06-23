@@ -33,7 +33,7 @@ if __name__ == '__main__':
     model_name = 'SM-Recursive'
     observe_size = 10
     img_seq = load_data(data_set_path = '/home/lab/orel_ws/project/data_set/test/')        
-    generator = tf.keras.models.load_model('{}/generator_0'.format(model_name))
+    generator = tf.keras.models.load_model('{}/generator'.format(model_name))
     input_size = generator.input.shape[3]
     GAP_PREDICT = read_prediction()
     assert GAP_PREDICT!=-1, "Prediction gap not found in 'read me' file."
@@ -68,5 +68,4 @@ if __name__ == '__main__':
     # full_img = np.concatenate((x_real,x_predict),axis = 0)
     plt.imshow(full_img, cmap = 'gray',vmin= -1, vmax = 1)
     plt.axis('off')
-    
     mpimg.imsave('{}/sample-{} model-{}.png'.format(model_name, start_inx+1, model_name), full_img, cmap = 'gray')
