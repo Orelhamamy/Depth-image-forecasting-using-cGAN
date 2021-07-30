@@ -9,4 +9,4 @@ This project includes:
 
 ## Example
 Deploying of forecasting depth images model within Gazebo simulation
-[![Watch the video](https://img.youtube.com/vi/7vj-QhmAMWtSH_I/default.jpg)](https://www.youtube.com/watch?v=QhmAMWtSH_I)
+[![Watch the video](https://img.youtube.com/vi/QhmAMWtSH_I/default.jpg)](https://www.youtube.com/watch?v=QhmAMWtSH_I)
