@@ -8,5 +8,5 @@ This project includes:
 3) Implementation of a trained model within the simulated environment.
 
 ## Example
-Deploying of forecasting depth images within Gazebo simulation
-<iframe width="560" height="315" src="https://www.youtube.com/embed/QhmAMWtSH_I" title="YouTube video player" frameborder="0" allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture" allowfullscreen></iframe>
+Deploying of forecasting depth images model within Gazebo simulation
+[![Watch the video](https://img.youtube.com/vi/7vj-QhmAMWtSH_I/default.jpg)](https://www.youtube.com/watch?v=QhmAMWtSH_I)
