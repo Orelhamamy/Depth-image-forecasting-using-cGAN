@@ -47,4 +47,4 @@ To generate your own follow those steps:
 
 ## Test
 
-## Dyployed the model
+## Deployed the model
