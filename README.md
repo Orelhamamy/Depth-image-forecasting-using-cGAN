@@ -27,6 +27,7 @@ The following python packges are required:
 - scipy
 - cv_bridge
 - rospy
+- getkey
 
 This project tested whitin Ubuntu 18.04 and ROS melodic.
 
@@ -40,9 +41,24 @@ git clone https://github.com/Orelhamamy/Depth-image-forecasting-using-cGAN.git
 catkin_make
 ```
 ## Generating a dataset
-There is two options, using generated benchmark (includ in this repo) either to generate your own.
-To generate your own follow those steps:
+There are two options, using generated benchmark (include in this repo) either to generate your own. If you are using the generated benchmark, continue to the next stage.
 
+To generate your own follow those steps:
+1. Launch the Gazebo simulation:
+```bash
+roslaunch ... UPDATE THIS
+```
+2. Run the teleop keyboard to dirve the robot, alternative use `rqt`:
+```bash
+roslaunch ... UPDATE THIS
+```
+Use the arrows to move around, q - for increase speeds, a - decrease speeds and, s - stop the robot.
+
+3. Run the capturing images node:
+```bash
+roslaunch ... UPDATE THIS
+```
+4. Choose (click) the terminal where the teleop running, and drive around the simulated world while the robot capturing depth images.
 ## Train
 
 ## Test
