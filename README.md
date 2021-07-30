@@ -27,6 +27,7 @@ The following python packges are required:
 - scipy
 - cv_bridge
 - rospy
+
 This project tested whitin Ubuntu 18.04 and ROS melodic.
 
 ### Getting started
