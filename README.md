@@ -40,23 +40,31 @@ git clone https://github.com/Orelhamamy/Depth-image-forecasting-using-cGAN.git
 ```bash
 catkin_make
 ```
+3. It's recommend to source the packge to .bashrc:
+```bash 
+echo "source $(pwd)/devel/setup.bash" >> $HOME/.bashrc
+```
 ## Generating a dataset
 There are two options, using generated benchmark (include in this repo) either to generate your own. If you are using the generated benchmark, continue to the next stage.
 
 To generate your own follow those steps:
 1. Launch the Gazebo simulation:
 ```bash
-roslaunch ... UPDATE THIS
+roslaunch depth_image_forecasting gazebo_train_world.launch 
 ```
 2. Run the teleop keyboard to dirve the robot, alternative use `rqt`:
 ```bash
-roslaunch ... UPDATE THIS
+rosrun depth_image_forecasting teleop_twist_keyboard_keys.py 
 ```
+
 Use the arrows to move around, q - for increase speeds, a - decrease speeds and, s - stop the robot.
+
 3. Run the capturing images node:
 ```bash
-roslaunch ... UPDATE THIS
+rosrun depth_image_forecasting data_set_creator.py -usage
 ```
+The usage arg can be train or test. **Note** this node will erase all previous data from train or test, where generating one dataset enforce correlating the second.
+
 4. Choose (click) the terminal where the teleop running, and drive around the simulated world while the robot capturing depth images.
 ## Train
 
