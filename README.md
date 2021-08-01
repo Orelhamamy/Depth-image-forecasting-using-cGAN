@@ -53,7 +53,6 @@ roslaunch ... UPDATE THIS
 roslaunch ... UPDATE THIS
 ```
 Use the arrows to move around, q - for increase speeds, a - decrease speeds and, s - stop the robot.
-
 3. Run the capturing images node:
 ```bash
 roslaunch ... UPDATE THIS
