@@ -1,11 +1,4 @@
-/model_training/*/generator/
-/model_training/*/discriminator/
-/model_training/*/generator_0/
-/model_training/*/discriminator_reff/
-/model_training/*/figs
-/model_training/*/figs_reff
-/model_training/*/figs_sigmoid
-src/simulation_ws/data_set/archive
-data_set/
-data_set_armadillo/
-Archive/
+/models/*/generator
+/models/*/generator_0
+/models/*/discriminator
+/models/*/discriminator_reff

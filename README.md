@@ -34,13 +34,14 @@ This project tested whitin Ubuntu 18.04 and ROS melodic.
 ### Getting started
 1. Clone this repository to your catkin workspace:
 ```bash
+cd $HOME/catkin_ws/src
 git clone https://github.com/Orelhamamy/Depth-image-forecasting-using-cGAN.git
 ```
 2. Build:
 ```bash
 catkin_make
 ```
-3. It's recommend to source the packge to .bashrc:
+3. (recommended) source the packge to .bashrc:
 ```bash 
 echo "source $(pwd)/devel/setup.bash" >> $HOME/.bashrc
 ```
@@ -67,7 +68,38 @@ The usage arg can be train or test. **Note** this node will erase all previous d
 
 4. Choose (click) the terminal where the teleop running, and drive around the simulated world while the robot capturing depth images.
 ## Train
-
+(optional) Download pre-trained model and skip this stage, you can download from [here](https://drive.google.com/drive/folders/1Z-qdWwg0yoYM70rIichATgCwB4QbSh_T?usp=sharing).
+It's recommended to use Spyder or your favorite python IDE, for training a model. Tunning the hyperparameters is easier.
+For training within a terminal run: 
+```bash
+cd $HOME/catkin_ws/src/Depth-image-forecasting-using-cGAN/models
+python3 model_train.py 
+```
 ## Test
 
+### Graphs generation
+For plotting the loss functions values use MATLAB (we use R2018a), to run `plot_models_loss_functions.m` script.
+
+### Visual results
+
+Run the states and prediction script: 
+```bash
+python3 states_and_predictions.py -model_name -states
+```
+The states arg is an integer (recommended to be [10,20]), the default is 10.
+exmple: 
+![demo](https://github.com/Orelhamamy/Depth-image-forecasting-using-cGAN/blob/master/images/states_and_predictions.png?raw=true "States and predictions"
+
+### Features visualization
+
+Run the features visualization script: 
+```bash
+python3 feature_visualization.py -model_name
+```
+In the script you can edit the input index, which hidden layers to plot and save. Running this script within Spyder will simplify the execution. 
+This script will save the hidden layers output in features folder, inside the models directory.
+
+## 3D convulation model
+
 ## Deployed the model
+

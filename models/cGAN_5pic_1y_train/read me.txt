@@ -1,0 +1,4 @@
+
+cGAN_5pic_1y_train2021.08.13--12:16:37 Epochs:150 Y_train is:1 Prediction gap:0, Reff
+cGAN_5pic_1y_train 13.08.2021--12:28:33 Epochs:2 Y_train is:1 Prediction gap:0, Reff
+cGAN_5pic_1y_train 13.08.2021--12:31:28 Epochs:2 Y_train is:1 Prediction gap:0

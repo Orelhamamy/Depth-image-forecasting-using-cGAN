@@ -1,0 +1,11 @@
+<?xml version="1.0"?>
+
+<launch>
+
+<include file="$(find depth_image_forecasting)/launch/empty_world.launch" >
+  <arg name="world_name" value="$(find depth_image_forecasting)/worlds/train_world.world"/>
+</include>
+
+<include file="$(find depth_image_forecasting)/launch/robot_import.launch" />
+
+</launch>

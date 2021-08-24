@@ -1,0 +1,8 @@
+prefix=/home/lab/orel_ws/Depth-image-forecasting-using-cGAN/devel
+
+Name: depth_image_forecasting
+Description: Description of depth_image_forecasting
+Version: 0.0.0
+Cflags: 
+Libs: -L${prefix}/lib 
+Requires: 

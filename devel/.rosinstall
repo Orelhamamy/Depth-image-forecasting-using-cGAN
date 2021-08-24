@@ -1,2 +1,2 @@
 - setup-file:
-    local-name: /home/lab/orel_ws/project/devel/setup.sh
+    local-name: /home/lab/orel_ws/Depth-image-forecasting-using-cGAN/devel/setup.sh

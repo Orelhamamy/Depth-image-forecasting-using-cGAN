@@ -1,2 +1,2 @@
-gazebo_demo:simulation_ws
--DCATKIN_DEVEL_PREFIX=/home/lab/orel_ws/project/devel -DCMAKE_INSTALL_PREFIX=/home/lab/orel_ws/project/install -G Unix Makefiles
+depth_image_forecasting
+-DCATKIN_DEVEL_PREFIX=/home/lab/orel_ws/Depth-image-forecasting-using-cGAN/devel -DCMAKE_INSTALL_PREFIX=/home/lab/orel_ws/Depth-image-forecasting-using-cGAN/install -G Unix Makefiles

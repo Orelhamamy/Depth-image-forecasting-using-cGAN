@@ -1,8 +1,0 @@
-prefix=/home/lab/orel_ws/project/devel
-
-Name: simulation_ws
-Description: Description of simulation_ws
-Version: 0.0.0
-Cflags: 
-Libs: -L${prefix}/lib 
-Requires: 
