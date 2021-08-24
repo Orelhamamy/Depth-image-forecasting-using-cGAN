@@ -105,5 +105,35 @@ Feature visualization, first hidden layer for 3D model:
 ![demo](https://github.com/Orelhamamy/Depth-image-forecasting-using-cGAN/blob/master/images/SM-3D_conv_feature-1.png?raw=true "First hidden layer")
 ## 3D convulation model
 
+The 3D convulation is a class within python, you can choose to load an exsict model or initialize one. Either way it's recommend to train, test and modifly the 3D models within an IDE. Expmple to initilaze, training, and validation the 3D model: 
+```python
+
+from three_d_conv_model import Three_d_conv_model
+
+model_name = 'SM-3D_conv'
+root_path = os.path.abspath(__file__ + "/../..")
+test_set_path = root_path + "/data_set/test/"
+train_set_path = root_path + "/data_set/train/"
+# --- loading existe model --- # 
+model = Three_d_conv_model(model_name,
+                        load_model=True)
+
+# --- initialize model --- # 
+model = Three_d_conv_model(model_name, train_set_path, 
+                           OBSERVE_SIZE = 5, load_model = False)
+# --- print scheme of the generator and discriminator --- # 
+model.print_model()
+
+# --- train the model --- #
+model.fit(150, model_name, disc_reff=False)
+
+# --- train the model with a reffernce discriminator --- # 
+model.fit(150, model_name, disc_reff=True)
+
+# --- validate the model --- #
+
+# model.model_validation(0,350,test_path=test_set_path) 
+``` 
+
 ## Deployed the model
 

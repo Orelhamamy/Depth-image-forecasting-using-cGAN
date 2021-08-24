@@ -329,8 +329,6 @@ class Three_d_conv_model():
                                                              target[tf.newaxis,...,tf.newaxis]])
                         reff_loss = self.discriminator_loss(disc_gen.numpy(), disc_real.numpy())
                         reff_loss_avg += reff_loss/(self.data_set_size-2*self.OBSERVE_SIZE-self.prediction_gap)
-                    # input_seq = tf.concat([input_seq, gen_img[0,...,0]], axis = 2)
-                    # input_seq = input_seq[:,:,1:]
                 print('.', end = '')
                 if (img_inx+1)%100==0:
                     print('\n')
@@ -424,7 +422,6 @@ class Three_d_conv_model():
             normal = cv2.normalize(img, normal, 0, 1, cv2.NORM_MINMAX)
             self.normal = normal
             
-            # self.img = img
             cv2.imshow('display', normal)
             k = cv2.waitKey(1)
             if k ==27 or k== ord('q'): 
@@ -438,22 +435,25 @@ class Three_d_conv_model():
         
 if __name__ == '__main__':     
     model_name = 'ARM-3D_conv'
+    root_path = os.path.abspath(__file__ + "/../..")
+    test_set_path = root_path + "/data_set/test/"
+    train_set_path = root_path + "/data_set/train/"
     model = Three_d_conv_model(model_name,
                             load_model=True)
 
 
-    # model = Three_d_conv_model('/home/lab/orel_ws/project/data_set_armadillo/3/', 
-    #                             model_name, OBSERVE_SIZE = 5, load_model = False)
+    # model = Three_d_conv_model(model_name, train_set_path, 
+    #                              OBSERVE_SIZE = 5, load_model = False)
     
     # model.model_validation()
     
     # model.print_model()
-    # model.fit(150, model_name, disc_reff=False)
+    model.fit(150, model_name, disc_reff=False)
     # model.fit(150, model_name, disc_reff=True)
     
-    # model.model_validation(0,1000, test_path='/home/lab/orel_ws/project/data_set/test/')
+    # model.model_validation(0,1000, test_path=test_set_path)
     
-    model.model_validation(0,350,test_path='/home/lab/orel_ws/project/data_set_armadillo/2/') 
+    # model.model_validation(0,350,test_path=test_set_path) 
 
 
 
