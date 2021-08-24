@@ -132,7 +132,7 @@ model.fit(150, model_name, disc_reff=True)
 
 # --- validate the model --- #
 
-# model.model_validation(0,350,test_path=test_set_path) 
+model.model_validation(0,350,test_path=test_set_path) 
 ``` 
 
 ## Deployed the model
