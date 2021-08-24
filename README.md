@@ -88,7 +88,7 @@ python3 states_and_predictions.py -model_name -states
 ```
 The states arg is an integer (recommended to be [10,20]), the default is 10.
 exmple: 
-![demo](https://github.com/Orelhamamy/Depth-image-forecasting-using-cGAN/blob/master/images/states_and_predictions.png?raw=true "States and predictions"
+![demo](https://github.com/Orelhamamy/Depth-image-forecasting-using-cGAN/blob/master/images/states_and_predictions.png?raw=true "States and predictions")
 
 ### Features visualization
 
