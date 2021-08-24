@@ -71,7 +71,6 @@ def plot_2D(test_set_path, model_name, inx, save_path = ''):
     # generate_image(data[:,:,inx:inx+input_size], input_size)  # This will display the input.
 
 
-
 def plot_3D_conv(test_set_path, model_name, inx, save_path = ''):
     if save_path=='': save_path = model_name+'/'
     model = Three_d_conv_model(model_name =model_name,data_set_path = test_set_path,
@@ -116,8 +115,10 @@ if __name__ =='__main__':
     save_path = model_path + "/features/"
     if not os.path.exists(save_path):
         os.makedirs(save_path)
-    
-    inx = 178 if "SM" in model_path else 195 # Choose the inx according to yours dataset. 
+    if len(sys.argv) > 2:
+        inx = sys.argv[2]
+    else:
+        inx = 178 if "SM" in model_path else 195 # Choose the inx according to yours dataset. 
     if "3D" in model_path:
         plot_3D_conv(test_set_path, model_name, inx, save_path)
     else:

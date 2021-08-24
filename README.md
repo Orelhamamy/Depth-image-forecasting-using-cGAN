@@ -90,15 +90,19 @@ The states arg is an integer (recommended to be [10,20]), the default is 10.
 exmple: 
 ![demo](https://github.com/Orelhamamy/Depth-image-forecasting-using-cGAN/blob/master/images/states_and_predictions.png?raw=true "States and predictions")
 
+Rows are arranged from top down: Ground-truth, predicted k+1 state, predicted k+2 state using a previous predicted state (k+1). 
 ### Features visualization
 
 Run the features visualization script: 
 ```bash
-python3 feature_visualization.py -model_name
+python3 feature_visualization.py -model_name -index
 ```
-In the script you can edit the input index, which hidden layers to plot and save. Running this script within Spyder will simplify the execution. 
-This script will save the hidden layers output in features folder, inside the models directory.
+The index argument is the data set index of the model's input sequence, either change the default input index within the script.
+Running this script within Spyder will simplify the execution. 
+This script will save the hidden layers output in: `/models/$(model_name)/features/$(model_name)_$(layer_number)`. The script will generate a `.png` and `.eps` files.
 
+Feature visualization, first hidden layer for 3D model:
+![demo](https://github.com/Orelhamamy/Depth-image-forecasting-using-cGAN/blob/master/images/SM-3D_conv_feature-1.png?raw=true "First hidden layer")
 ## 3D convulation model
 
 ## Deployed the model
