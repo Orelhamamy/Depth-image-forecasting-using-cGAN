@@ -438,9 +438,9 @@ if __name__ == '__main__':
     root_path = os.path.abspath(__file__ + "/../..")
     test_set_path = root_path + "/data_set/test/"
     train_set_path = root_path + "/data_set/train/"
+    
     model = Three_d_conv_model(model_name,
                             load_model=True)
-
 
     # model = Three_d_conv_model(model_name, train_set_path, 
     #                              OBSERVE_SIZE = 5, load_model = False)
@@ -448,10 +448,10 @@ if __name__ == '__main__':
     # model.model_validation()
     
     # model.print_model()
-    model.fit(150, model_name, disc_reff=False)
+    # model.fit(150, model_name, disc_reff=False)
     # model.fit(150, model_name, disc_reff=True)
     
-    # model.model_validation(0,1000, test_path=test_set_path)
+    model.model_validation(0,1000, test_path=test_set_path)
     
     # model.model_validation(0,350,test_path=test_set_path) 
 

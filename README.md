@@ -114,13 +114,15 @@ model_name = 'SM-3D_conv'
 root_path = os.path.abspath(__file__ + "/../..")
 test_set_path = root_path + "/data_set/test/"
 train_set_path = root_path + "/data_set/train/"
+
 # --- loading existe model --- # 
 model = Three_d_conv_model(model_name,
                         load_model=True)
-
+ 
 # --- initialize model --- # 
 model = Three_d_conv_model(model_name, train_set_path, 
                            OBSERVE_SIZE = 5, load_model = False)
+
 # --- print scheme of the generator and discriminator --- # 
 model.print_model()
 
@@ -131,7 +133,6 @@ model.fit(150, model_name, disc_reff=False)
 model.fit(150, model_name, disc_reff=True)
 
 # --- validate the model --- #
-
 model.model_validation(0,350,test_path=test_set_path) 
 ``` 
 
