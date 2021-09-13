@@ -7,6 +7,8 @@ This project includes:
 2) Python scripts for generating, training, and evaluating cGAN models(2D&3D-convolution).
 3) Implementation of a trained model within the simulated environment.
 
+The project report can be found [here](https://drive.google.com/file/d/1bUPgLBIRvz96YqWHCKxU6505yh9bypF8/view?usp=sharing).
+
 ## Example
 Deploying of forecasting depth images model within Gazebo simulation:
 
