@@ -7,6 +7,7 @@ import cv2
 import numpy as np
 import rospy
 import copy
+import os
 import argparse
 from sensor_msgs.msg import CompressedImage
 from geometry_msgs.msg import Twist
@@ -15,12 +16,7 @@ from matplotlib.figure import Figure
 from PIL import Image, ImageDraw, ImageFont
 
 
-# from scipy.io import savemat
-# import datetime
 
-# HEIGHT, WIDTH = 128, 128
-# depth_camera = '/depth_camera/depth/image_raw'
-# model_path ='/home/lab/orel_ws/project/model_training/' + '3D_conv_5_1.3'
 vel_cmd = Twist()
 
 
@@ -36,8 +32,8 @@ def parser():
     )
     parser.add_argument(
         "--model_path",
-        default="/home/lab/orel_ws/project/model_training/",
-        help="The model dirctory..",
+        default=os.path.abspath(__file__ + "/../../../../") + "/models/",
+        help="The model dirctory.",
     )
     return parser.parse_args()
 
@@ -73,17 +69,36 @@ def create_velocity_arrow(fig, canvas, ax):
     return grey_img
 
 
-def create_avg_text(comp_time, img_shape, fnt, model_name):
+def create_avg_text(comp_time, img_shape,  model_name):
 
     img = Image.new('L', (img_shape), color=(255))
     d = ImageDraw.Draw(img)
 
-    d.text((10, 128), "Computation time:{:.3f}(sec)\nModel: {}".format(comp_time, model_name), font=fnt, fill=(0))
+    d.text((10, 128), "Computation time:{:.3f}(sec)\nModel: {}".format(comp_time, model_name), fill=(0))
 
     return np.asarray(img)
 
 
+def read_prediction(model_name):
+    file_path = '{}/read me.txt'.format(model_name)
+    with open(file_path, 'r') as f:
+        for line in f:
+            if 'Prediction gap' in line:
+                inx = line.index('Prediction gap') + len('Prediction gap') + 1
+                return int(line[inx])
+    return -1
+
+
 def main(args):
+    model_path = args.model_path + args.model_name
+    if not os.path.exists(model_path + "/generator"):
+        print(("Couldn't find the trained model '{}', make sure "
+               "you enter the correct model name as an argument "
+               "and verified that is a trained model.").format(args.model_name))
+        exit()
+    elif "Gap" in args.model_name or read_prediction(model_path)!=0:
+        print("This deployment can be executed only with the '3D' or 'Recursive' models...")
+        exit()
     global vel_cmd
     fig = Figure(figsize=(512/100, 512/100))
     canvas = FigureCanvas(fig)
@@ -91,10 +106,7 @@ def main(args):
     avg_calc = .0
     counter = 0
     ax.set_aspect("equal")
-    fnt = ImageFont.truetype("/home/lab/orel_ws/Rubik-Regular.ttf", 18)
-
-
-    model_path = args.model_path + args.model_name
+    # fnt = ImageFont.truetype("/home/lab/orel_ws/Rubik-Regular.ttf", 18) 
     generator = tf.keras.models.load_model("{}/generator".format(model_path))
     input_shape = generator.input.shape[1:4]
     input_imgs = rospy.wait_for_message(args.input_topic, CompressedImage)
@@ -113,7 +125,7 @@ def main(args):
         else:
             input_imgs = np.concatenate((input_imgs[0, ..., 1:], prediction), axis=-1)
             rec_prediction = generator(input_imgs[tf.newaxis, ...], training=False)[0, ..., 0]
-        
+
         comp_calc = (rospy.Time.now() - start_time).to_sec()
         current_frame = ((current_frame + 1) * 127.5) / 100
         current_frame[current_frame > 1] = 1
@@ -122,7 +134,7 @@ def main(args):
                                      dividing_gap, (rec_prediction + 1),
                                       ), axis=1)
         arrow = create_velocity_arrow(fig, canvas, ax)/255
-        compu_calc_image = create_avg_text(comp_calc, (256, 256), fnt, args.model_name)/255
+        compu_calc_image = create_avg_text(comp_calc, (256, 256), args.model_name)/255
         arrow = np.concatenate((compu_calc_image, arrow), axis=1)
         display_img = np.concatenate((display_img, arrow), axis=0)
         display_img = cv2.copyMakeBorder(display_img, top=50, bottom=0, left=20, right=20, borderType=cv2.BORDER_CONSTANT, value=[1, 1])

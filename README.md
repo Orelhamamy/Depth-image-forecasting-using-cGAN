@@ -1,5 +1,5 @@
 # Depth image forecasting
-By Orel Hamamy(https://github.com/Orelhamamy) and [Or Tslil](https://github.com/ortslil64). This project is the final 
+By Orel Hamamy(https://github.com/Orelhamamy) and [Or Tslil](https://github.com/ortslil64). This project is a final 
 BSc project.
  
 This project includes:
@@ -19,7 +19,7 @@ Deploying of forecasting depth images model within Gazebo simulation:
 - Python 2.*, 3.*
 - NVIDIA GPU + CUDA CuDNN (CPU mode and CUDA without CuDNN may work with minimal modification, but untested)
 
-The following python packges are required:
+The following python packages are required:
 - TensorFlow 2.*
 - Numpy
 - OpenCv2
@@ -29,7 +29,7 @@ The following python packges are required:
 - rospy
 - getkey
 
-This project tested whitin Ubuntu 18.04 and ROS melodic.
+This project was tested within Ubuntu 18.04 and ROS melodic.
 
 ### Getting started
 1. Clone this repository to your catkin workspace:
@@ -53,7 +53,7 @@ To generate your own follow those steps:
 ```bash
 roslaunch depth_image_forecasting gazebo_train_world.launch 
 ```
-2. Run the teleop keyboard to dirve the robot, alternative use `rqt`:
+2. Run the teleop keyboard to drive the robot, alternative use `rqt`:
 ```bash
 rosrun depth_image_forecasting teleop_twist_keyboard_keys.py 
 ```
@@ -64,12 +64,12 @@ Use the arrows to move around, q - for increase speeds, a - decrease speeds and,
 ```bash
 rosrun depth_image_forecasting data_set_creator.py -usage
 ```
-The usage arg can be train or test. **Note** this node will erase all previous data from train or test, where generating one dataset enforce correlating the second.
+The usage arg can be train or test. **Note** this node will erase all previous data from train or test, where generating one dataset enforces correlating the second.
 
 4. Choose (click) the terminal where the teleop running, and drive around the simulated world while the robot capturing depth images.
 ## Train
-(optional) Download pre-trained model and skip this stage, you can download from [here](https://drive.google.com/drive/folders/1Z-qdWwg0yoYM70rIichATgCwB4QbSh_T?usp=sharing).
-It's recommended to use Spyder or your favorite python IDE, for training a model. Tunning the hyperparameters is easier.
+(optional) Download a pre-trained model and skip this stage, you can download from [here](https://drive.google.com/drive/folders/1Z-qdWwg0yoYM70rIichATgCwB4QbSh_T?usp=sharing) then save it in `/Depth-image-forecasting-using-cGAN/models`.
+It's recommended to use Spyder or your favorite python IDE, for training a model. With IDE hyperparameters tunning is easier.
 For training within a terminal run: 
 ```bash
 cd $HOME/catkin_ws/src/Depth-image-forecasting-using-cGAN/models
@@ -90,7 +90,7 @@ The states arg is an integer (recommended to be [10,20]), the default is 10.
 exmple: 
 ![demo](https://github.com/Orelhamamy/Depth-image-forecasting-using-cGAN/blob/master/images/states_and_predictions.png?raw=true "States and predictions")
 
-Rows are arranged from top down: Ground-truth, predicted k+1 state, predicted k+2 state using a previous predicted state (k+1). 
+Rows are arranged from top-down: Ground-truth, predicted k+1 state, predicted k+2 state using a previous predicted state (k+1). 
 ### Features visualization
 
 Run the features visualization script: 
@@ -105,7 +105,7 @@ Feature visualization, first hidden layer for 3D model:
 ![demo](https://github.com/Orelhamamy/Depth-image-forecasting-using-cGAN/blob/master/images/SM-3D_conv_feature-1.png?raw=true "First hidden layer")
 ## 3D convulation model
 
-The 3D convulation is a class within python, you can choose to load an exsict model or initialize one. Either way it's recommend to train, test and modifly the 3D models within an IDE. Expmple to initilaze, training, and validation the 3D model: 
+The 3D convolution is an API within python, the script is at: `/models/three_d_conv_model`. You can choose to load an existing model or initialize one. Either way, it's recommended to train, test, and modify the 3D models within an IDE. Example to initialize, training, and validation the 3D model: 
 ```python
 
 from three_d_conv_model import Three_d_conv_model
@@ -137,4 +137,24 @@ model.model_validation(0,350,test_path=test_set_path)
 ``` 
 
 ## Deployed the model
+
+This section introduces how to forecast depth images from a running simulation.
+
+1. Launch the simulation and the robot:
+```bash
+roslaunch depth_image_forecasting gazebo_test_world.launch
+```
+
+2. Run a publisher of depth image sequences:
+```bash
+rosrun depth_image_forecasting image_sequence_publisher.py 
+```
+
+3. Run the forecasting model: 
+```bash
+rosrun depth_image_forecasting live_forecasting.py --model_name SM-3D_conv
+```
+
+The arg `--model_name` is the name of a trained model from `/models` directory. A pre-trained model can be found [here](https://drive.google.com/drive/folders/1Z-qdWwg0yoYM70rIichATgCwB4QbSh_T?usp=sharing).
+
 

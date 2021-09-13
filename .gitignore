@@ -2,3 +2,4 @@
 /models/*/generator_0
 /models/*/discriminator
 /models/*/discriminator_reff
+/models/*
