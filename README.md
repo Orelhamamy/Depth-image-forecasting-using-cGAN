@@ -138,7 +138,7 @@ model.model_validation(0,350,test_path=test_set_path)
 
 ## Deployed the model
 
-This section introduces how to forecast depth images from a running simulation.
+This section introduces how to forecast depth images from a running simulation. This deployed works only with a Recursive model or a 3D model, a model with a prediction gap>0 can't be executed.
 
 1. Launch the simulation and the robot:
 ```bash
