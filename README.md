@@ -1,6 +1,6 @@
 # Depth image forecasting
 By Orel Hamamy(https://github.com/Orelhamamy) and [Or Tslil](https://github.com/ortslil64). This project is a final 
-BSc project.
+B.Sc project.
  
 This project includes:
 1) ROS package generates a sequence of depth images, with two Gazebo worlds. 
