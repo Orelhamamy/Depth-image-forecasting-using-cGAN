@@ -1,5 +1,5 @@
 # Depth image forecasting
-By Orel Hamamy(https://github.com/Orelhamamy) and [Or Tslil](https://github.com/ortslil64). This project is a final 
+By [Orel Hamamy](https://github.com/Orelhamamy) and [Or Tslil](https://github.com/ortslil64). This project is a final 
 B.Sc project.
  
 This project includes:
