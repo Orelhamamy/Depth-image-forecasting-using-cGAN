@@ -264,7 +264,7 @@
     <visual>
       <origin xyz="0 0 0" rpy="0 0 0"/>
       <geometry>
-        <mesh filename="package://gazebo_demo/urdf/hokuyo.dae"/>
+        <mesh filename="package://depth_image_forecasting/urdf/hokuyo.dae"/>
       </geometry>
     </visual>
 
