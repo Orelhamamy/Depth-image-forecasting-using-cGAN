@@ -1,10 +1,9 @@
 # Depth image forecasting
-By [Orel Hamamy](https://github.com/Orelhamamy) and [Or Tslil](https://github.com/ortslil64). This project is a final 
-B.Sc project.
+This project is a final B.Sc project By [Orel Hamamy](https://github.com/Orelhamamy) under the supervision of [Or Tslil](https://github.com/ortslil64). 
  
 This project includes:
-1) ROS package generates a sequence of depth images, with two Gazebo worlds. 
-2) Python scripts for generating, training, and evaluating cGAN models(2D&3D-convolution).
+1) A ROS package that generates a sequence of depth images using two Gazebo worlds.
+2) Python scripts for creating, training, and evaluating cGAN models(2D&3D-convolution).
 3) Implementation of a trained model within the simulated environment.
 
 The project report can be found [here](https://drive.google.com/file/d/1bUPgLBIRvz96YqWHCKxU6505yh9bypF8/view?usp=sharing).
